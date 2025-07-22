@@ -1,60 +1,61 @@
-// src/pages/CheckoutPage.jsx
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
 
-const CheckoutPage = () => {
-  const [customerName, setCustomerName] = useState('');
-  const [customerPhone, setCustomerPhone] = useState('');
+function CheckoutPage() {
+  const location = useLocation();
   const navigate = useNavigate();
+  const { cartItems, vendor } = location.state || {};
+  const [customerLocation, setCustomerLocation] = useState({ latitude: null, longitude: null });
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  useEffect(() => {
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = {
+          latitude: position.coords.latitude,
+          longitude: position.coords.longitude,
+        };
+        setCustomerLocation(loc);
+      },
+      (error) => {
+        console.error('Error getting location:', error);
+      }
+    );
+  }, []);
 
-    const location = JSON.parse(localStorage.getItem('customerLocation'));
-    const order = JSON.parse(localStorage.getItem('order'));
-
-    if (!location || !order) {
-      alert('Missing order or location data');
-      return;
-    }
-
-    const payload = {
-      customerName,
-      customerPhone,
-      order,
-      location
-    };
-
+  const handlePlaceOrder = async () => {
     try {
-      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/orders`, payload);
-      const orderId = response.data.orderId;
+      const orderId = `order-${Date.now()}`;
 
-      console.log('[CHECKOUT] Order response:', response.data);
+      const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/orders`, {
+        vendor,
+        items: cartItems,
+        location: customerLocation,
+        orderId,
+      });
 
-      // ✅ Save orderId for tracker page
-      localStorage.setItem('latestOrderId', orderId);
+      localStorage.setItem('orderId', orderId);
+      console.log('✅ Order placed with orderId:', orderId);
 
-      // Redirect to tracker
       navigate('/track-order');
-    } catch (err) {
-      console.error('[CHECKOUT] Order submission failed:', err);
-      alert('Order submission failed');
+    } catch (error) {
+      console.error('Error placing order:', error);
     }
   };
 
   return (
-    <div className="container">
-      <h2>Enter Your Info</h2>
-      <form onSubmit={handleSubmit}>
-        <label>Name:</label>
-        <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
-        <label>Phone:</label>
-        <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} required />
-        <button type="submit">Place Order</button>
-      </form>
+    <div style={{ padding: '20px' }}>
+      <h2>Checkout</h2>
+      <ul>
+        {cartItems && cartItems.map((item, i) => (
+          <li key={i}>
+            {item.name} - ${item.price}
+          </li>
+        ))}
+      </ul>
+      <button onClick={handlePlaceOrder}>Place Order</button>
     </div>
   );
-};
+}
 
 export default CheckoutPage;
