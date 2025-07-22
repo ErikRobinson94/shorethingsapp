@@ -18,7 +18,11 @@ function OrderTracker() {
   const customerCoordsRef = useRef(null);
 
   const { state } = useLocation();
-  const initialOrderId = state?.orderId || localStorage.getItem('latestOrderId');
+  const navOrderId = state?.orderId;
+  const storedOrderId = localStorage.getItem('latestOrderId');
+  const initialOrderId = navOrderId || storedOrderId;
+  console.log('[TRACKER] orderId from state:', navOrderId);
+  console.log('[TRACKER] orderId from localStorage:', storedOrderId);
   const [orderId] = useState(initialOrderId);
   const [order, setOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);

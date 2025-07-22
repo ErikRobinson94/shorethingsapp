@@ -21,7 +21,8 @@ function LocationPage() {
   useEffect(() => {
     if (!coords) return;
 
-    mapboxgl.accessToken = 'pk.eyJ1IjoiZWRyb2JpbnM5NCIsImEiOiJjbWN3OTVpNWcwMnVxMndxN3YwZ2w1MTRmIn0.2rvIa4wcQV2Sox3T9Ruh2g';
+    mapboxgl.accessToken =
+      'pk.eyJ1IjoiZWRyb2JpbnM5NCIsImEiOiJjbWN3OTVpNWcwMnVxMndxN3YwZ2w1MTRmIn0.2rvIa4wcQV2Sox3T9Ruh2g';
 
     mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
@@ -74,7 +75,7 @@ function LocationPage() {
 
         const payload = { orderId, latitude, longitude };
 
-        // ✅ Corrected: emit as customer location
+        // ✅ emit customer location with order ID
         socket.emit('customerLocation', payload);
         console.log('📡 Emitted customerLocation:', payload);
       },

@@ -25,7 +25,12 @@ const CheckoutPage = () => {
       clearCart();
 
       const orderId = response.data.id || response.data._id;
-      localStorage.setItem('latestOrderId', orderId);
+      if (orderId) {
+        localStorage.setItem('latestOrderId', orderId);
+        console.log('[LOCALSTORAGE] Saved orderId:', orderId);
+      } else {
+        console.warn('[LOCALSTORAGE] No orderId found in response');
+      }
 
       console.log('✅ Order response:', response.data);
 
