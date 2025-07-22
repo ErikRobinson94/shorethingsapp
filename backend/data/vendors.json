@@ -1,0 +1,12 @@
+[
+  {
+    "id": 1,
+    "name": "MB Pizzeria",
+    "image": "/uploads/mbpizzeria.png"
+  },
+  {
+    "id": 2,
+    "name": "Breadhead",
+    "image": "/uploads/breadhead.png"
+  }
+]

@@ -1,0 +1,26 @@
+[
+  {
+    "id": 1,
+    "name": "16in (Large) Pepperoni Pizza",
+    "price": 25.99,
+    "category": "food",
+    "vendor": "MB Pizzeria",
+    "image": "/uploads/pepperoni-large.png"
+  },
+  {
+    "id": 2,
+    "name": "Margherita Pizza",
+    "price": 23.99,
+    "category": "food",
+    "vendor": "MB Pizzeria",
+    "image": "/uploads/margherita.png"
+  },
+  {
+    "id": 3,
+    "name": "Sourdough Bread Loaf",
+    "price": 12.49,
+    "category": "food",
+    "vendor": "Breadhead",
+    "image": "/uploads/sourdough.png"
+  }
+]

@@ -1,0 +1,90 @@
+.order-page {
+  padding: 2rem;
+  max-width: 900px;
+  margin: 0 auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  color: #222;
+}
+
+.order-page h2 {
+  font-size: 1.8rem;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+.order-steps {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem;
+  background-color: #f2f2f2;
+  border-radius: 12px;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.order-steps span {
+  flex: 1;
+  text-align: center;
+  padding: 0.5rem;
+  border-radius: 8px;
+  color: #888;
+}
+
+.order-steps span.active {
+  background-color: #222;
+  color: white;
+}
+
+.map-container {
+  height: 400px;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Optional scroll style for item list */
+.order-summary ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0 0 1rem 0;
+}
+
+.order-summary li {
+  margin-bottom: 0.4rem;
+  font-size: 1rem;
+}
+
+.order-summary p {
+  font-size: 1.1rem;
+  font-weight: bold;
+  margin-top: 0.5rem;
+}
+
+.map-container {
+  height: 500px;
+  width: 100%;
+}
+
+.marker-black {
+  width: 20px;
+  height: 20px;
+  background-color: black;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.marker-green {
+  width: 20px;
+  height: 20px;
+  background-color: limegreen;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+.customer-marker {
+  z-index: 10;
+}
+
+
