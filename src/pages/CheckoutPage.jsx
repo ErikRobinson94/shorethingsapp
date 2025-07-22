@@ -1,63 +1,58 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+// src/pages/CheckoutPage.jsx
+import React, { useState } from 'react';
 import axios from 'axios';
-import { useCart } from '../context/CartContext'; // ✅ only useCart
-import '../styles/CheckoutPage.css'; // ✅ your own stylesheet
+import { useNavigate } from 'react-router-dom';
 
 const CheckoutPage = () => {
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
   const navigate = useNavigate();
-  const { cart, clearCart } = useCart();
 
-  const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  const handleConfirmOrder = async () => {
-    const coords = JSON.parse(localStorage.getItem('userCoords'));
+    const location = JSON.parse(localStorage.getItem('customerLocation'));
+    const order = JSON.parse(localStorage.getItem('order'));
+
+    if (!location || !order) {
+      alert('Missing order or location data');
+      return;
+    }
+
+    const payload = {
+      customerName,
+      customerPhone,
+      order,
+      location
+    };
 
     try {
-      const response = await axios.post('/api/orders', {
-        items: cart,
-        total: totalPrice,
-        timestamp: Date.now(),
-        status: 'placed',
-        location: coords || null,
-      });
+      const response = await axios.post(`${process.env.REACT_APP_API_BASE_URL}/api/orders`, payload);
+      const orderId = response.data.orderId;
 
-      clearCart();
+      console.log('[CHECKOUT] Order response:', response.data);
 
-      const orderId = response.data.id || response.data._id;
-      if (orderId) {
-        localStorage.setItem('latestOrderId', orderId);
-        console.log('[LOCALSTORAGE] Saved orderId:', orderId);
-      } else {
-        console.warn('[LOCALSTORAGE] No orderId found in response');
-      }
+      // ✅ Save orderId for tracker page
+      localStorage.setItem('latestOrderId', orderId);
 
-      console.log('✅ Order response:', response.data);
-
-      navigate('/track-order', { state: { orderId } });
+      // Redirect to tracker
+      navigate('/track-order');
     } catch (err) {
-      console.error('❌ Order submission failed:', err);
+      console.error('[CHECKOUT] Order submission failed:', err);
+      alert('Order submission failed');
     }
   };
 
   return (
-    <div className="checkout-page">
-      <h2>🧾 Review Your Order</h2>
-      {cart.length === 0 ? (
-        <p>Your cart is empty.</p>
-      ) : (
-        <ul>
-          {cart.map((item, i) => (
-            <li key={i}>
-              {item.name} — ${item.price.toFixed(2)}
-            </li>
-          ))}
-        </ul>
-      )}
-      <p><strong>Total:</strong> ${totalPrice.toFixed(2)}</p>
-      <button onClick={handleConfirmOrder} disabled={cart.length === 0}>
-        ✅ Confirm Order
-      </button>
+    <div className="container">
+      <h2>Enter Your Info</h2>
+      <form onSubmit={handleSubmit}>
+        <label>Name:</label>
+        <input value={customerName} onChange={(e) => setCustomerName(e.target.value)} required />
+        <label>Phone:</label>
+        <input value={customerPhone} onChange={(e) => setCustomerPhone(e.target.value)} required />
+        <button type="submit">Place Order</button>
+      </form>
     </div>
   );
 };
