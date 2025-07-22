@@ -13,12 +13,12 @@ function ItemsPage() {
   const [clickedItemId, setClickedItemId] = useState(null);
 
   useEffect(() => {
-    fetch('http://localhost:5000/api/vendors')
+    fetch('https://shorethingsapp.onrender.com/api/vendors')
       .then(res => res.json())
       .then(setVendors);
 
     // ✅ Fix here: previously pointed to /api/items which doesn’t exist
-    fetch('http://localhost:5000/api/products')
+    fetch('https://shorethingsapp.onrender.com/api/products')
       .then(res => res.json())
       .then(setItems);
   }, []);

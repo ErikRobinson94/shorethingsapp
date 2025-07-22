@@ -7,7 +7,7 @@ import '../styles/OrderTracker.css';
 
 mapboxgl.accessToken =
   'pk.eyJ1IjoiZWRyb2JpbnM5NCIsImEiOiJjbWN3OTVpNWcwMnVxMndxN3YwZ2w1MTRmIn0.2rvIa4wcQV2Sox3T9Ruh2g';
-const socket = io('http://localhost:5000');
+const socket = io('https://shorethingsapp.onrender.com');
 
 function OrderTracker() {
   const mapRef = useRef(null);
@@ -37,7 +37,7 @@ function OrderTracker() {
 
     const fetchOrder = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/orders/${orderId}`);
+        const res = await axios.get(`https://shorethingsapp.onrender.com/api/orders/${orderId}`);
         setOrder(res.data);
         localStorage.setItem('latestOrderId', res.data.id || res.data._id);
         console.log('[ORDER] Loaded:', res.data);

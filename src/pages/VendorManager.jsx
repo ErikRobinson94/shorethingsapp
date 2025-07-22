@@ -14,7 +14,7 @@ function VendorManager() {
 
   const fetchVendors = async () => {
     try {
-      const res = await axios.get('http://localhost:5000/api/vendors');
+      const res = await axios.get('https://shorethingsapp.onrender.com/api/vendors');
       setVendors(res.data);
     } catch (err) {
       console.error('Error fetching vendors:', err);
@@ -24,7 +24,7 @@ function VendorManager() {
   const addVendor = async () => {
     if (!newVendor.trim()) return;
     try {
-      await axios.post('http://localhost:5000/api/vendors', { name: newVendor });
+      await axios.post('https://shorethingsapp.onrender.com/api/vendors', { name: newVendor });
       setNewVendor('');
       setStatus('✅ Vendor added!');
       fetchVendors();
@@ -37,7 +37,7 @@ function VendorManager() {
   const deleteVendor = async (name) => {
     try {
       const updatedVendors = vendors.filter((v) => (v.name || v) !== name);
-      await axios.post('http://localhost:5000/api/vendors', { name: '__overwrite__', vendors: updatedVendors });
+      await axios.post('https://shorethingsapp.onrender.com/api/vendors', { name: '__overwrite__', vendors: updatedVendors });
       setStatus('🗑️ Vendor deleted.');
       fetchVendors();
     } catch (err) {

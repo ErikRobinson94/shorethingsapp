@@ -21,7 +21,7 @@ function ProductManager() {
   const categoryOptions = ['beach', 'food', 'games'];
 
   useEffect(() => {
-    axios.get('http://localhost:5000/api/vendors').then((res) => {
+    axios.get('https://shorethingsapp.onrender.com/api/vendors').then((res) => {
       setVendors(res.data);
       if (res.data.length > 0 && !form.vendor) {
         const firstVendor = res.data[0].name || res.data[0];
@@ -48,7 +48,7 @@ function ProductManager() {
     try {
       let finalVendor = form.vendor;
       if (useNewVendor && form.newVendor) {
-        await axios.post('http://localhost:5000/api/vendors', { name: form.newVendor });
+        await axios.post('https://shorethingsapp.onrender.com/api/vendors', { name: form.newVendor });
         finalVendor = form.newVendor;
       }
 
@@ -56,11 +56,11 @@ function ProductManager() {
       if (imageFile) {
         const formData = new FormData();
         formData.append('image', imageFile);
-        const uploadRes = await axios.post('http://localhost:5000/api/upload', formData);
+        const uploadRes = await axios.post('https://shorethingsapp.onrender.com/api/upload', formData);
         imagePath = uploadRes.data.filename;
       }
 
-      await axios.post('http://localhost:5000/api/items', {
+      await axios.post('https://shorethingsapp.onrender.com/api/items', {
         name: form.name,
         price: parseFloat(form.price),
         category: form.category,

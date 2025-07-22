@@ -5,7 +5,7 @@ import { io } from 'socket.io-client';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import '../styles/LocationPage.css';
 
-const socket = io('http://localhost:5000');
+const socket = io('https://shorethingsapp.onrender.com');
 
 function LocationPage() {
   const mapContainerRef = useRef(null);

@@ -10,7 +10,7 @@ const MeetPage = () => {
   useEffect(() => {
     const fetchLocation = async () => {
       try {
-        const res = await axios.get(`http://localhost:5000/api/location/${id}`);
+        const res = await axios.get(`https://shorethingsapp.onrender.com/api/location/${id}`);
         setLocation(res.data);
         setStatus('Here’s the location to meet:');
       } catch (err) {
