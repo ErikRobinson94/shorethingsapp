@@ -21,6 +21,8 @@ function LocationPage() {
   useEffect(() => {
     if (!coords) return;
 
+    console.log('🗺️ [Mapbox] Initializing map with coordinates:', coords);
+
     mapboxgl.accessToken = 'pk.eyJ1IjoiZWRyb2JpbnM5NCIsImEiOiJjbWN3OTVpNWcwMnVxMndxN3YwZ2w1MTRmIn0.2rvIa4wcQV2Sox3T9Ruh2g';
 
     mapRef.current = new mapboxgl.Map({
@@ -42,42 +44,89 @@ function LocationPage() {
       .addTo(mapRef.current);
 
     return () => {
+      console.log('♻️ [Mapbox] Cleaning up map and marker');
       if (markerRef.current) markerRef.current.remove();
       if (mapRef.current) mapRef.current.remove();
+      markerRef.current = null;
+      mapRef.current = null;
     };
   }, [coords]);
 
-  const handleLocation = () => {
+  const handleMarkLocation = () => {
+    console.log('📍 [Geo] Attempting to get user location...');
+    setErrorMsg('');
+    setLoading(true);
+
     if (!navigator.geolocation) {
-      setErrorMsg('Geolocation is not supported.');
+      setErrorMsg('Geolocation is not supported by your browser.');
+      console.warn('⚠️ [Geo] Geolocation unsupported');
+      setLoading(false);
       return;
     }
 
-    setLoading(true);
-
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude: lat, longitude: lon } = position.coords;
-        const newCoords = { lat, lon };
-        setCoords(newCoords);
-        localStorage.setItem('customerCoords', JSON.stringify(newCoords));
+        const { latitude, longitude } = position.coords;
+        const location = { lat: latitude, lon: longitude };
+        setCoords(location);
         setLoading(false);
+
+        // Save to localStorage
+        localStorage.setItem('userCoords', JSON.stringify(location));
+        localStorage.setItem('customerCoords', JSON.stringify(location));
+        console.log('✅ [Geo] Coordinates saved to localStorage:', location);
+
+        const orderId = localStorage.getItem('latestOrderId');
+        if (!orderId) {
+          console.warn('⚠️ [Socket] No orderId found — skipping emit. Location will be sent later.');
+          return;
+        }
+
+        const payload = { orderId, latitude, longitude };
+        socket.emit('customerLocation', payload);
+        console.log('📡 [Socket] Emitted customerLocation with orderId:', payload);
       },
       (error) => {
-        setErrorMsg('Failed to get location.');
+        console.error('❌ [Geo] Geolocation error:', error);
+        setErrorMsg('Unable to retrieve your location.');
         setLoading(false);
       }
     );
   };
 
+  const handleAddItemsClick = () => {
+    console.log('🛒 [Nav] Navigating to item selection...');
+    navigate('/items');
+  };
+
+  useEffect(() => {
+    console.log('🚀 [Page Load] LocationPage mounted.');
+    return () => {
+      console.log('🧹 [Page Unload] Cleaning up LocationPage.');
+    };
+  }, []);
+
   return (
     <div className="location-page">
-      <h2>Mark Your Location</h2>
-      <button onClick={handleLocation} disabled={loading}>
+      <h1>Mark Your Location</h1>
+
+      <button onClick={handleMarkLocation} disabled={loading}>
         {loading ? 'Locating...' : 'Use My Location'}
       </button>
+
       {errorMsg && <p className="error">{errorMsg}</p>}
-      <div ref={mapContainerRef} className="map-container" />
+
+      <div id="map-container" ref={mapContainerRef}></div>
+
+      {coords && (
+        <p className="coords">
+          📍 <strong>Lat:</strong> {coords.lat.toFixed(5)} | <strong>Lon:</strong> {coords.lon.toFixed(5)}
+        </p>
+      )}
+
+      <button className="add-items-btn" onClick={handleAddItemsClick}>
+        <span className="icon">➕</span> Add Items to Your Order →
+      </button>
     </div>
   );
 }
