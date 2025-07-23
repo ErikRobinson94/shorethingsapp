@@ -1,61 +1,66 @@
-import React, { useEffect, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+import { useCart } from '../context/CartContext'; // ✅ only useCart
+import '../styles/CheckoutPage.css'; // ✅ your own stylesheet
 
-function CheckoutPage() {
-  const location = useLocation();
+const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { cartItems, vendor } = location.state || {};
-  const [customerLocation, setCustomerLocation] = useState({ latitude: null, longitude: null });
+  const { cart, clearCart } = useCart();
 
-  useEffect(() => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const loc = {
-          latitude: position.coords.latitude,
-          longitude: position.coords.longitude,
-        };
-        setCustomerLocation(loc);
-      },
-      (error) => {
-        console.error('Error getting location:', error);
-      }
-    );
-  }, []);
+  const totalPrice = cart.reduce((sum, item) => sum + item.price, 0);
 
-  const handlePlaceOrder = async () => {
+  const handleConfirmOrder = async () => {
+    const coords = JSON.parse(localStorage.getItem('userCoords'));
+
     try {
-      const orderId = `order-${Date.now()}`;
-
-      const response = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/orders`, {
-        vendor,
-        items: cartItems,
-        location: customerLocation,
-        orderId,
+      const response = await axios.post('/api/orders', {
+        items: cart,
+        total: totalPrice,
+        timestamp: Date.now(),
+        status: 'placed',
+        location: coords || null,
       });
 
-      localStorage.setItem('orderId', orderId);
-      console.log('✅ Order placed with orderId:', orderId);
+      clearCart();
 
-      navigate('/track-order');
-    } catch (error) {
-      console.error('Error placing order:', error);
+      // ✅ Extract and persist order ID for use in LocationPage
+      const orderId = response.data.id || response.data._id;
+      if (orderId) {
+        localStorage.setItem('latestOrderId', orderId);
+        console.log('✅ Order confirmed, ID saved to localStorage:', orderId);
+      } else {
+        console.warn('⚠️ No orderId found in response:', response.data);
+      }
+
+      // ✅ Navigate to track page with order ID
+      navigate('/track-order', { state: { orderId } });
+
+    } catch (err) {
+      console.error('❌ Order submission failed:', err);
     }
   };
 
   return (
-    <div style={{ padding: '20px' }}>
-      <h2>Checkout</h2>
-      <ul>
-        {cartItems && cartItems.map((item, i) => (
-          <li key={i}>
-            {item.name} - ${item.price}
-          </li>
-        ))}
-      </ul>
-      <button onClick={handlePlaceOrder}>Place Order</button>
+    <div className="checkout-page">
+      <h2>🧾 Review Your Order</h2>
+      {cart.length === 0 ? (
+        <p>Your cart is empty.</p>
+      ) : (
+        <ul>
+          {cart.map((item, i) => (
+            <li key={i}>
+              {item.name} — ${item.price.toFixed(2)}
+            </li>
+          ))}
+        </ul>
+      )}
+      <p><strong>Total:</strong> ${totalPrice.toFixed(2)}</p>
+      <button onClick={handleConfirmOrder} disabled={cart.length === 0}>
+        ✅ Confirm Order
+      </button>
     </div>
   );
-}
+};
 
 export default CheckoutPage;
