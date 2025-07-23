@@ -44,73 +44,40 @@ function LocationPage() {
     return () => {
       if (markerRef.current) markerRef.current.remove();
       if (mapRef.current) mapRef.current.remove();
-      markerRef.current = null;
-      mapRef.current = null;
     };
   }, [coords]);
 
-  const handleMarkLocation = () => {
-    setErrorMsg('');
-    setLoading(true);
-
+  const handleLocation = () => {
     if (!navigator.geolocation) {
-      setErrorMsg('Geolocation is not supported by your browser.');
-      setLoading(false);
+      setErrorMsg('Geolocation is not supported.');
       return;
     }
 
+    setLoading(true);
+
     navigator.geolocation.getCurrentPosition(
       (position) => {
-        const { latitude, longitude } = position.coords;
-        const location = { lat: latitude, lon: longitude };
-        setCoords(location);
+        const { latitude: lat, longitude: lon } = position.coords;
+        const newCoords = { lat, lon };
+        setCoords(newCoords);
+        localStorage.setItem('customerCoords', JSON.stringify(newCoords));
         setLoading(false);
-
-        // 🧠 Store in localStorage to be used later in CheckoutPage
-        localStorage.setItem('userCoords', JSON.stringify(location));
-        console.log('📍 Coordinates saved to localStorage:', location);
-
-        const orderId = localStorage.getItem('latestOrderId');
-        if (!orderId) {
-          console.warn('⚠️ No orderId found — skipping emit. Location will be sent later.');
-          return;
-        }
-
-        const payload = { orderId, latitude, longitude };
-        socket.emit('customerLocation', payload);
-        console.log('📡 Emitted customerLocation (with orderId):', payload);
       },
       (error) => {
-        console.error('❌ Geolocation error:', error);
-        setErrorMsg('Unable to retrieve your location.');
+        setErrorMsg('Failed to get location.');
         setLoading(false);
       }
     );
   };
 
-  const handleAddItemsClick = () => {
-    navigate('/items');
-  };
-
   return (
     <div className="location-page">
-      <h1>Mark Your Location</h1>
-      <button onClick={handleMarkLocation} disabled={loading}>
-        {loading ? 'Locating...' : 'Mark My Location'}
+      <h2>Mark Your Location</h2>
+      <button onClick={handleLocation} disabled={loading}>
+        {loading ? 'Locating...' : 'Use My Location'}
       </button>
       {errorMsg && <p className="error">{errorMsg}</p>}
-
-      <div id="map-container" ref={mapContainerRef}></div>
-
-      {coords && (
-        <p className="coords">
-          📍 <strong>Lat:</strong> {coords.lat.toFixed(5)} | <strong>Lon:</strong> {coords.lon.toFixed(5)}
-        </p>
-      )}
-
-      <button className="add-items-btn" onClick={handleAddItemsClick}>
-        <span className="icon">➕</span> Add Items to Your Order →
-      </button>
+      <div ref={mapContainerRef} className="map-container" />
     </div>
   );
 }

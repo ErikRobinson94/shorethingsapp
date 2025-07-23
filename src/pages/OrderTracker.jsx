@@ -18,10 +18,16 @@ function OrderTracker() {
   const customerCoordsRef = useRef(null);
 
   const { state } = useLocation();
+  const storedCoords = localStorage.getItem('customerCoords');
+  if (storedCoords) {
+    customerCoordsRef.current = JSON.parse(storedCoords);
+  }
+
   const navOrderId = state?.orderId;
   const storedOrderId = localStorage.getItem('latestOrderId');
   const initialOrderId = navOrderId || storedOrderId;
 
+  localStorage.setItem('latestOrderId', initialOrderId);
   const [orderId] = useState(initialOrderId);
   const [order, setOrder] = useState(null);
   const [driverLocation, setDriverLocation] = useState(null);
@@ -42,10 +48,8 @@ function OrderTracker() {
       try {
         const res = await axios.get(`https://shorethingsapp.onrender.com/api/orders/${orderId}`);
         setOrder(res.data);
-        localStorage.setItem('latestOrderId', res.data.id || res.data._id);
-        console.log('[ORDER] Loaded:', res.data);
       } catch (err) {
-        console.error('[ORDER] Fetch error:', err);
+        console.error('Failed to fetch order:', err);
       }
     };
 
@@ -53,131 +57,87 @@ function OrderTracker() {
   }, [orderId]);
 
   useEffect(() => {
-    if (!order?.location || mapRef.current) return;
+    if (!mapContainerRef.current || !customerCoordsRef.current || !order) return;
 
-    const { latitude, longitude } = order.location;
-    console.log('[MAP] Initializing at customer location:', latitude, longitude);
-
-    const map = new mapboxgl.Map({
+    mapRef.current = new mapboxgl.Map({
       container: mapContainerRef.current,
       style: 'mapbox://styles/mapbox/streets-v11',
-      center: [longitude, latitude],
+      center: [customerCoordsRef.current.lon, customerCoordsRef.current.lat],
       zoom: 14,
     });
 
-    map.on('load', () => {
-      console.log('[MAP] Loaded and ready.');
-      setMapReady(true);
+    const marker = new mapboxgl.Marker({ color: 'blue' })
+      .setLngLat([customerCoordsRef.current.lon, customerCoordsRef.current.lat])
+      .addTo(mapRef.current);
 
-      customerCoordsRef.current = [longitude, latitude];
+    customerMarkerRef.current = marker;
+    setMapReady(true);
 
-      const el = document.createElement('div');
-      el.className = 'customer-marker';
-      el.style.width = '26px';
-      el.style.height = '26px';
-      el.style.backgroundColor = 'black';
-      el.style.borderRadius = '50%';
-      el.style.boxShadow = '0 0 6px rgba(0,0,0,0.4)';
-      el.style.border = '2px solid white';
-
-      customerMarkerRef.current = new mapboxgl.Marker(el)
-        .setLngLat([longitude, latitude])
-        .setPopup(new mapboxgl.Popup().setText('📍 Customer'))
-        .addTo(map);
-    });
-
-    mapRef.current = map;
+    return () => {
+      if (mapRef.current) mapRef.current.remove();
+    };
   }, [order]);
 
   useEffect(() => {
-    const handleDriverLocation = (loc) => {
-      console.log('[SOCKET] Driver location received:', loc);
-      if (!loc || !loc.latitude || !loc.longitude) return;
+    socket.on('driverLocationUpdate', (data) => {
+      if (!mapReady || !data?.lat || !data?.lon) return;
 
-      setDriverLocation(loc);
+      const driverLngLat = [data.lon, data.lat];
 
-      setOrder((prev) => {
-        if (!prev || prev.status === 'en_route' || prev.status === 'delivered') return prev;
-        return { ...prev, status: 'en_route' };
+      if (driverMarkerRef.current) {
+        driverMarkerRef.current.setLngLat(driverLngLat);
+      } else {
+        driverMarkerRef.current = new mapboxgl.Marker({ color: 'red' })
+          .setLngLat(driverLngLat)
+          .addTo(mapRef.current);
+      }
+
+      // Draw line between customer and driver
+      if (lineRef.current) {
+        mapRef.current.removeLayer('route');
+        mapRef.current.removeSource('route');
+      }
+
+      const routeGeoJSON = {
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [
+            [customerCoordsRef.current.lon, customerCoordsRef.current.lat],
+            driverLngLat,
+          ],
+        },
+      };
+
+      mapRef.current.addSource('route', {
+        type: 'geojson',
+        data: routeGeoJSON,
       });
-    };
 
-    socket.on('driverLocation', handleDriverLocation);
-    return () => socket.off('driverLocation', handleDriverLocation);
-  }, [orderId]);
-
-  useEffect(() => {
-    if (!driverLocation || !mapRef.current || !mapReady || !customerCoordsRef.current) return;
-
-    const { latitude, longitude } = driverLocation;
-    const map = mapRef.current;
-
-    if (driverMarkerRef.current) {
-      driverMarkerRef.current.setLngLat([longitude, latitude]);
-    } else {
-      driverMarkerRef.current = new mapboxgl.Marker({ color: 'green' })
-        .setLngLat([longitude, latitude])
-        .setPopup(new mapboxgl.Popup().setText('🚗 Driver'))
-        .addTo(map);
-    }
-
-    const routeData = {
-      type: 'Feature',
-      geometry: {
-        type: 'LineString',
-        coordinates: [customerCoordsRef.current, [longitude, latitude]],
-      },
-    };
-
-    if (lineRef.current && map.getSource('route')) {
-      map.getSource('route').setData(routeData);
-    } else {
-      if (map.getSource('route')) map.removeLayer('route') && map.removeSource('route');
-      map.addSource('route', { type: 'geojson', data: routeData });
-      map.addLayer({
+      mapRef.current.addLayer({
         id: 'route',
         type: 'line',
         source: 'route',
-        layout: { 'line-join': 'round', 'line-cap': 'round' },
-        paint: { 'line-color': '#3b9ddd', 'line-width': 4 },
+        layout: {
+          'line-join': 'round',
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#888',
+          'line-width': 4,
+        },
       });
-      lineRef.current = true;
-    }
 
-    map.flyTo({ center: [longitude, latitude], zoom: 15 });
-  }, [driverLocation, mapReady]);
+      lineRef.current = routeGeoJSON;
+    });
+
+    return () => socket.off('driverLocationUpdate');
+  }, [mapReady]);
 
   return (
-    <div className="order-page">
-      <h2>📦 Track Your Order</h2>
-
-      {order ? (
-        <>
-          <p><strong>Status:</strong> {order.status}</p>
-
-          <div className="order-steps">
-            <span className={order.status === 'placed' ? 'active' : ''}>Waiting</span>
-            <span className={order.status === 'en_route' ? 'active' : ''}>En Route</span>
-            <span className={order.status === 'delivered' ? 'active' : ''}>Delivered</span>
-          </div>
-
-          <div ref={mapContainerRef} className="map-container" />
-
-          <div className="order-summary">
-            <ul>
-              {order.items?.map((item, i) => (
-                <li key={i}>{item.name} — ${item.price.toFixed(2)}</li>
-              ))}
-            </ul>
-            <p>
-              <strong>Total:</strong> $
-              {order.items?.reduce((sum, item) => sum + item.price, 0).toFixed(2)}
-            </p>
-          </div>
-        </>
-      ) : (
-        <p>Loading order details...</p>
-      )}
+    <div className="order-tracker-page">
+      <h2>Track Your Order</h2>
+      <div ref={mapContainerRef} className="map-container" />
     </div>
   );
 }
