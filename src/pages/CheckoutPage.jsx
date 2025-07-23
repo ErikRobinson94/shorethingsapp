@@ -1,8 +1,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useCart } from '../context/CartContext'; // ✅ only useCart
-import '../styles/CheckoutPage.css'; // ✅ your own stylesheet
+import { useCart } from '../context/CartContext';
+import '../styles/CheckoutPage.css';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
@@ -12,6 +12,7 @@ const CheckoutPage = () => {
 
   const handleConfirmOrder = async () => {
     const coords = JSON.parse(localStorage.getItem('userCoords'));
+    console.log('📦 [Checkout] Submitting order with coords:', coords);
 
     try {
       const response = await axios.post('/api/orders', {
@@ -22,22 +23,23 @@ const CheckoutPage = () => {
         location: coords || null,
       });
 
-      clearCart();
+      // 🔍 Debug backend response
+      console.log('🧾 [Checkout] Raw backend response:', response.data);
 
-      // ✅ Extract and persist order ID for use in LocationPage
       const orderId = response.data.id || response.data._id;
+
       if (orderId) {
         localStorage.setItem('latestOrderId', orderId);
-        console.log('✅ Order confirmed, ID saved to localStorage:', orderId);
+        console.log('✅ [Checkout] Order confirmed, ID saved to localStorage:', orderId);
       } else {
-        console.warn('⚠️ No orderId found in response:', response.data);
+        console.warn('⚠️ [Checkout] No orderId found in response:', response.data);
       }
 
-      // ✅ Navigate to track page with order ID
-      navigate('/track-order', { state: { orderId } });
+      clearCart();
 
+      navigate('/track-order', { state: { orderId } });
     } catch (err) {
-      console.error('❌ Order submission failed:', err);
+      console.error('❌ [Checkout] Order submission failed:', err);
     }
   };
 
