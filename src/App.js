@@ -6,12 +6,9 @@ import LocationPage from './pages/LocationPage';
 import MeetPage from './pages/MeetPage';
 import ItemsPage from './pages/ItemsPage';
 import AdminDashboard from './pages/AdminDashboard';
-import CheckoutPage from './pages/CheckoutPage'; // ✅ new import
+import CheckoutPage from './pages/CheckoutPage';
 import { CartProvider } from './context/CartContext';
 import OrderTracker from './pages/OrderTracker';
-
-
-
 
 function App() {
   return (
@@ -23,8 +20,8 @@ function App() {
           <Route path="/meet/:id" element={<MeetPage />} />
           <Route path="/items" element={<ItemsPage />} />
           <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/checkout" element={<CheckoutPage />} /> {/* ✅ added route */}
-          <Route path="/track-order" element={<OrderTracker />} />
+          <Route path="/checkout" element={<CheckoutPage />} />
+          <Route path="/track-order/:id" element={<OrderTracker />} /> {/* ✅ dynamic route */}
         </Routes>
       </Router>
     </CartProvider>

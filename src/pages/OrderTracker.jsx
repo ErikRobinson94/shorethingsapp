@@ -6,11 +6,12 @@ import 'mapbox-gl/dist/mapbox-gl.css';
 import '../styles/OrderTracker.css';
 
 mapboxgl.accessToken = 'pk.eyJ1IjoibGF3ZGFsZWF0cyIsImEiOiJjbGcxcDBpbWowNTRrM2VtZ3U4cGtnZW1rIn0.rQ4gQKVuDPo7u7XWgokYfA';
+
 const BACKEND_URL = 'https://shorethingsapp.onrender.com';
 const socket = io(BACKEND_URL);
 
 const OrderTracker = () => {
-  const { orderId } = useParams();
+  const { id } = useParams(); // Grab dynamic :id from URL
   const [order, setOrder] = useState(null);
   const [driverCoords, setDriverCoords] = useState(null);
   const [customerCoords, setCustomerCoords] = useState(null);
@@ -20,23 +21,29 @@ const OrderTracker = () => {
   const customerMarkerRef = useRef(null);
 
   useEffect(() => {
-    console.log('[Tracker] Order ID from URL:', orderId);
-    if (!orderId) return;
+    console.log('🧾 [OrderTracker] URL param id:', id);
+    if (!id) {
+      console.warn('⚠️ [OrderTracker] No order ID found in URL.');
+      return;
+    }
 
-    socket.emit('joinOrder', `order-${orderId}`);
-    console.log(`[Socket] Emitted joinOrder for room: order-${orderId}`);
+    socket.emit('joinOrder', `order-${id}`);
+    console.log(`[Socket] Emitted joinOrder for room: order-${id}`);
 
     const fetchOrder = async () => {
       try {
-        const res = await fetch(`${BACKEND_URL}/api/orders/${orderId}`);
+        const res = await fetch(`${BACKEND_URL}/api/orders/${id}`);
         const data = await res.json();
-        console.log('[Tracker] Order fetched:', data);
+        console.log('[OrderTracker] Order fetched:', data);
+
         setOrder(data);
+
         if (data?.location) {
           setCustomerCoords([data.location.longitude, data.location.latitude]);
+          console.log('[OrderTracker] Customer location set:', data.location);
         }
       } catch (err) {
-        console.error('[Tracker] Failed to fetch order:', err);
+        console.error('[OrderTracker] Failed to fetch order:', err);
       }
     };
 
@@ -49,12 +56,16 @@ const OrderTracker = () => {
 
     return () => {
       socket.off('driverLocation');
-      if (mapInstanceRef.current) mapInstanceRef.current.remove();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+      }
     };
-  }, [orderId]);
+  }, [id]);
 
   useEffect(() => {
     if (!customerCoords || !mapRef.current) return;
+
+    console.log('[Map] Initializing map with customer coords:', customerCoords);
 
     const map = new mapboxgl.Map({
       container: mapRef.current,
@@ -77,6 +88,11 @@ const OrderTracker = () => {
 
   useEffect(() => {
     if (!mapInstanceRef.current || !driverCoords || !customerCoords) return;
+
+    console.log('[Map] Drawing route from driver to customer:', {
+      driverCoords,
+      customerCoords
+    });
 
     if (driverMarkerRef.current) {
       driverMarkerRef.current.setLngLat(driverCoords);
@@ -133,8 +149,8 @@ const OrderTracker = () => {
       {order ? (
         <>
           <div className="status-bar">
-            <div className={`step ${order.status === 'placed' || order.status === 'en_route' || order.status === 'delivered' ? 'active' : ''}`}>Placed</div>
-            <div className={`step ${order.status === 'en_route' || order.status === 'delivered' ? 'active' : ''}`}>En Route</div>
+            <div className={`step ${['placed', 'en_route', 'delivered'].includes(order.status) ? 'active' : ''}`}>Placed</div>
+            <div className={`step ${['en_route', 'delivered'].includes(order.status) ? 'active' : ''}`}>En Route</div>
             <div className={`step ${order.status === 'delivered' ? 'active' : ''}`}>Delivered</div>
           </div>
           <p className="status-text">Current Status: {getStatusText(order.status)}</p>
