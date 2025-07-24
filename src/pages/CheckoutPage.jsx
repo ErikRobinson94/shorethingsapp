@@ -15,15 +15,17 @@ const CheckoutPage = () => {
     console.log('📦 [Checkout] Submitting order with coords:', coords);
 
     try {
-      const response = await axios.post('/api/orders', {
-        items: cart,
-        total: totalPrice,
-        timestamp: Date.now(),
-        status: 'placed',
-        location: coords || null,
-      });
+      const response = await axios.post(
+        `${import.meta.env.VITE_SERVER_URL || 'https://shorethingsapp.onrender.com'}/api/orders`,
+        {
+          items: cart,
+          total: totalPrice,
+          timestamp: Date.now(),
+          status: 'placed',
+          location: coords || null,
+        }
+      );
 
-      // 🔍 Debug backend response
       console.log('🧾 [Checkout] Raw backend response:', response.data);
 
       const orderId = response.data.id || response.data._id;
@@ -31,13 +33,14 @@ const CheckoutPage = () => {
       if (orderId) {
         localStorage.setItem('latestOrderId', orderId);
         console.log('✅ [Checkout] Order confirmed, ID saved to localStorage:', orderId);
+
+        clearCart();
+
+        // ✅ Navigate to correct order tracker route
+        navigate(`/track-order/${orderId}`);
       } else {
         console.warn('⚠️ [Checkout] No orderId found in response:', response.data);
       }
-
-      clearCart();
-
-      navigate('/track-order', { state: { orderId } });
     } catch (err) {
       console.error('❌ [Checkout] Order submission failed:', err);
     }
