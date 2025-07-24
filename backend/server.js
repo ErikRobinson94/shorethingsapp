@@ -12,7 +12,7 @@ const io = new Server(server, {
   cors: { origin: '*' }
 });
 
-// Use Render's PORT if available, fallback to 5000 locally
+// Use Render's port if available
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
@@ -61,13 +61,19 @@ app.post('/api/orders', (req, res) => {
     const order = req.body || {};
     const coords = order.location || { latitude: 33.881941, longitude: -118.409997 };
 
+    // Normalize keys to latitude/longitude
+    const location = {
+      latitude: coords.latitude ?? coords.lat,
+      longitude: coords.longitude ?? coords.lon
+    };
+
     const newOrder = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
       status: 'placed',
       items: order.items || [],
       total: order.total || 0,
-      location: coords
+      location
     };
 
     const ordersPath = getFile('orders.json');
@@ -187,5 +193,5 @@ io.on('connection', (socket) => {
 });
 
 server.listen(PORT, () => {
-  console.log(`✅ Server + Socket.IO running at http://localhost:${PORT}`);
+  console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });

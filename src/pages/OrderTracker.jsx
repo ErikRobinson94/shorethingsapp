@@ -39,8 +39,15 @@ const OrderTracker = () => {
         setOrder(data);
 
         if (data?.location) {
-          setCustomerCoords([data.location.longitude, data.location.latitude]);
-          console.log('[OrderTracker] Customer location set:', data.location);
+          const lng = data.location.longitude ?? data.location.lon;
+          const lat = data.location.latitude ?? data.location.lat;
+
+          if (lng !== undefined && lat !== undefined) {
+            setCustomerCoords([lng, lat]);
+            console.log('[OrderTracker] Customer location set:', { lat, lng });
+          } else {
+            console.warn('[OrderTracker] Invalid location data:', data.location);
+          }
         }
       } catch (err) {
         console.error('[OrderTracker] Failed to fetch order:', err);
