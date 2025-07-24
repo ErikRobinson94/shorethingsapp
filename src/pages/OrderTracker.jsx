@@ -11,7 +11,7 @@ const BACKEND_URL = 'https://shorethingsapp.onrender.com';
 const socket = io(BACKEND_URL);
 
 const OrderTracker = () => {
-  const { id } = useParams(); // Grab dynamic :id from URL
+  const { id } = useParams(); 
   const [order, setOrder] = useState(null);
   const [driverCoords, setDriverCoords] = useState(null);
   const [customerCoords, setCustomerCoords] = useState(null);
@@ -82,6 +82,7 @@ const OrderTracker = () => {
     });
 
     mapInstanceRef.current = map;
+    console.log('[Mapbox] Map instance:', map);
 
     const customerMarker = new mapboxgl.Marker({ color: 'blue' })
       .setLngLat(customerCoords)
