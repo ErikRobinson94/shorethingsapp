@@ -1,145 +1,150 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import mapboxgl from 'mapbox-gl';
-import io from 'socket.io-client';
-import axios from 'axios';
+import { io } from 'socket.io-client';
+import 'mapbox-gl/dist/mapbox-gl.css';
 import '../styles/OrderTracker.css';
 
-mapboxgl.accessToken =
-  'pk.eyJ1IjoiZWRyb2JpbnM5NCIsImEiOiJjbWN3OTVpNWcwMnVxMndxN3YwZ2w1MTRmIn0.2rvIa4wcQV2Sox3T9Ruh2g';
-const socket = io('https://shorethingsapp.onrender.com');
+mapboxgl.accessToken = 'pk.eyJ1IjoibGF3ZGFsZWF0cyIsImEiOiJjbGcxcDBpbWowNTRrM2VtZ3U4cGtnZW1rIn0.rQ4gQKVuDPo7u7XWgokYfA';
+const BACKEND_URL = 'https://shorethingsapp.onrender.com';
+const socket = io(BACKEND_URL);
 
-function OrderTracker() {
-  const mapRef = useRef(null);
-  const mapContainerRef = useRef(null);
-  const customerMarkerRef = useRef(null);
-  const driverMarkerRef = useRef(null);
-  const lineRef = useRef(null);
-  const customerCoordsRef = useRef(null);
-
-  const { state } = useLocation();
-  const storedCoords = localStorage.getItem('customerCoords');
-  if (storedCoords) {
-    customerCoordsRef.current = JSON.parse(storedCoords);
-  }
-
-  const navOrderId = state?.orderId;
-  const storedOrderId = localStorage.getItem('latestOrderId');
-  const initialOrderId = navOrderId || storedOrderId;
-
-  localStorage.setItem('latestOrderId', initialOrderId);
-  const [orderId] = useState(initialOrderId);
+const OrderTracker = () => {
+  const { orderId } = useParams();
   const [order, setOrder] = useState(null);
-  const [driverLocation, setDriverLocation] = useState(null);
-  const [mapReady, setMapReady] = useState(false);
+  const [driverCoords, setDriverCoords] = useState(null);
+  const [customerCoords, setCustomerCoords] = useState(null);
+  const mapRef = useRef(null);
+  const mapInstanceRef = useRef(null);
+  const driverMarkerRef = useRef(null);
+  const customerMarkerRef = useRef(null);
 
   useEffect(() => {
-    if (orderId) {
-      const room = `order-${orderId}`;
-      socket.emit('joinOrder', room);
-      console.log('[SOCKET] Joined room:', room);
-    }
-  }, [orderId]);
-
-  useEffect(() => {
+    console.log('[Tracker] Order ID from URL:', orderId);
     if (!orderId) return;
+
+    socket.emit('joinOrder', `order-${orderId}`);
+    console.log(`[Socket] Emitted joinOrder for room: order-${orderId}`);
 
     const fetchOrder = async () => {
       try {
-        const res = await axios.get(`https://shorethingsapp.onrender.com/api/orders/${orderId}`);
-        setOrder(res.data);
+        const res = await fetch(`${BACKEND_URL}/api/orders/${orderId}`);
+        const data = await res.json();
+        console.log('[Tracker] Order fetched:', data);
+        setOrder(data);
+        if (data?.location) {
+          setCustomerCoords([data.location.longitude, data.location.latitude]);
+        }
       } catch (err) {
-        console.error('Failed to fetch order:', err);
+        console.error('[Tracker] Failed to fetch order:', err);
       }
     };
 
     fetchOrder();
+
+    socket.on('driverLocation', ({ latitude, longitude }) => {
+      console.log('[Socket] Driver location received:', { latitude, longitude });
+      setDriverCoords([longitude, latitude]);
+    });
+
+    return () => {
+      socket.off('driverLocation');
+      if (mapInstanceRef.current) mapInstanceRef.current.remove();
+    };
   }, [orderId]);
 
   useEffect(() => {
-    if (!mapContainerRef.current || !customerCoordsRef.current || !order) return;
+    if (!customerCoords || !mapRef.current) return;
 
-    mapRef.current = new mapboxgl.Map({
-      container: mapContainerRef.current,
+    const map = new mapboxgl.Map({
+      container: mapRef.current,
       style: 'mapbox://styles/mapbox/streets-v11',
-      center: [customerCoordsRef.current.lon, customerCoordsRef.current.lat],
-      zoom: 14,
+      center: customerCoords,
+      zoom: 14
     });
 
-    const marker = new mapboxgl.Marker({ color: 'blue' })
-      .setLngLat([customerCoordsRef.current.lon, customerCoordsRef.current.lat])
-      .addTo(mapRef.current);
+    mapInstanceRef.current = map;
 
-    customerMarkerRef.current = marker;
-    setMapReady(true);
+    const customerMarker = new mapboxgl.Marker({ color: 'blue' })
+      .setLngLat(customerCoords)
+      .addTo(map);
+    customerMarkerRef.current = customerMarker;
 
     return () => {
-      if (mapRef.current) mapRef.current.remove();
+      if (map) map.remove();
     };
-  }, [order]);
+  }, [customerCoords]);
 
   useEffect(() => {
-    socket.on('driverLocationUpdate', (data) => {
-      if (!mapReady || !data?.lat || !data?.lon) return;
+    if (!mapInstanceRef.current || !driverCoords || !customerCoords) return;
 
-      const driverLngLat = [data.lon, data.lat];
+    if (driverMarkerRef.current) {
+      driverMarkerRef.current.setLngLat(driverCoords);
+    } else {
+      driverMarkerRef.current = new mapboxgl.Marker({ color: 'red' })
+        .setLngLat(driverCoords)
+        .addTo(mapInstanceRef.current);
+    }
 
-      if (driverMarkerRef.current) {
-        driverMarkerRef.current.setLngLat(driverLngLat);
-      } else {
-        driverMarkerRef.current = new mapboxgl.Marker({ color: 'red' })
-          .setLngLat(driverLngLat)
-          .addTo(mapRef.current);
+    const lineData = {
+      type: 'Feature',
+      geometry: {
+        type: 'LineString',
+        coordinates: [driverCoords, customerCoords]
       }
+    };
 
-      // Draw line between customer and driver
-      if (lineRef.current) {
-        mapRef.current.removeLayer('route');
-        mapRef.current.removeSource('route');
-      }
-
-      const routeGeoJSON = {
-        type: 'Feature',
-        geometry: {
-          type: 'LineString',
-          coordinates: [
-            [customerCoordsRef.current.lon, customerCoordsRef.current.lat],
-            driverLngLat,
-          ],
-        },
-      };
-
-      mapRef.current.addSource('route', {
+    if (mapInstanceRef.current.getSource('routeLine')) {
+      mapInstanceRef.current.getSource('routeLine').setData(lineData);
+    } else {
+      mapInstanceRef.current.addSource('routeLine', {
         type: 'geojson',
-        data: routeGeoJSON,
+        data: lineData
       });
 
-      mapRef.current.addLayer({
-        id: 'route',
+      mapInstanceRef.current.addLayer({
+        id: 'routeLine',
         type: 'line',
-        source: 'route',
+        source: 'routeLine',
         layout: {
           'line-join': 'round',
-          'line-cap': 'round',
+          'line-cap': 'round'
         },
         paint: {
-          'line-color': '#888',
-          'line-width': 4,
-        },
+          'line-color': '#ff0000',
+          'line-width': 4
+        }
       });
+    }
+  }, [driverCoords, customerCoords]);
 
-      lineRef.current = routeGeoJSON;
-    });
-
-    return () => socket.off('driverLocationUpdate');
-  }, [mapReady]);
+  const getStatusText = (status) => {
+    switch (status) {
+      case 'placed': return 'Order Placed';
+      case 'en_route': return 'Driver En Route';
+      case 'delivered': return 'Delivered';
+      default: return 'Unknown';
+    }
+  };
 
   return (
-    <div className="order-tracker-page">
+    <div className="tracker-container">
       <h2>Track Your Order</h2>
-      <div ref={mapContainerRef} className="map-container" />
+      {order ? (
+        <>
+          <div className="status-bar">
+            <div className={`step ${order.status === 'placed' || order.status === 'en_route' || order.status === 'delivered' ? 'active' : ''}`}>Placed</div>
+            <div className={`step ${order.status === 'en_route' || order.status === 'delivered' ? 'active' : ''}`}>En Route</div>
+            <div className={`step ${order.status === 'delivered' ? 'active' : ''}`}>Delivered</div>
+          </div>
+          <p className="status-text">Current Status: {getStatusText(order.status)}</p>
+        </>
+      ) : (
+        <p>Loading order details...</p>
+      )}
+      <div ref={mapRef} className="tracker-map" />
     </div>
   );
-}
+};
 
 export default OrderTracker;

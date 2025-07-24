@@ -12,7 +12,8 @@ const io = new Server(server, {
   cors: { origin: '*' }
 });
 
-const PORT = 5000;
+// Use Render's PORT if available, fallback to 5000 locally
+const PORT = process.env.PORT || 5000;
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -55,25 +56,32 @@ app.get('/api/products', (req, res) => {
 // ✅ Place order
 app.post('/api/orders', (req, res) => {
   try {
-    const order = req.body;
+    console.log('📩 Incoming order:', req.body);
+
+    const order = req.body || {};
+    const coords = order.location || { latitude: 33.881941, longitude: -118.409997 };
+
+    const newOrder = {
+      id: Date.now(),
+      timestamp: new Date().toISOString(),
+      status: 'placed',
+      items: order.items || [],
+      total: order.total || 0,
+      location: coords
+    };
+
     const ordersPath = getFile('orders.json');
     const currentOrders = fs.existsSync(ordersPath)
       ? JSON.parse(fs.readFileSync(ordersPath))
       : [];
 
-    const newOrder = {
-      ...order,
-      id: Date.now(),
-      timestamp: new Date().toISOString(),
-      status: 'placed',
-      location: order.location || { latitude: 33.881941, longitude: -118.409997 }
-    };
-
     currentOrders.push(newOrder);
     fs.writeFileSync(ordersPath, JSON.stringify(currentOrders, null, 2));
+
+    console.log('✅ Order saved:', newOrder);
     res.status(201).json(newOrder);
   } catch (err) {
-    console.error('Error saving order:', err);
+    console.error('❌ Error saving order:', err);
     res.status(500).json({ error: 'Failed to save order' });
   }
 });
