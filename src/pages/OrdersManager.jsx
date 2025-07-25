@@ -9,7 +9,6 @@ const socket = io(BASE_URL, { transports: ['websocket'] });
 
 const OrdersManager = () => {
   const [orders, setOrders] = useState([]);
-  const watchIdRef = useRef(null);
   const activeOrderRef = useRef(null);
   const mockIntervalRef = useRef(null);
 
@@ -37,17 +36,19 @@ const OrdersManager = () => {
 
   const updateStatus = async (orderId, currentStatus) => {
     const newStatus = getNextStatus(currentStatus);
+    console.log(`[DEBUG] Updating order ${orderId} from ${currentStatus} to ${newStatus}`);
+
     try {
       await axios.post(`${BASE_URL}/api/orders/status`, { orderId, status: newStatus });
       socket.emit('orderStatusUpdated', { orderId, status: newStatus });
 
       if (newStatus === 'en_route') {
-        startMockDriverLocation(orderId); // Mock location for testing
+        startMockDriverLocation(orderId);
       } else if (newStatus === 'delivered') {
         stopMockDriverLocation();
       }
 
-      fetchOrders();
+      await fetchOrders();
     } catch (err) {
       console.error('[OrdersManager] Error updating status:', err);
     }
@@ -57,9 +58,9 @@ const OrdersManager = () => {
    * Mock driver location in El Segundo for testing
    */
   const startMockDriverLocation = (orderId) => {
-    console.log('[MOCK GEO] Simulating driver location in El Segundo...');
+    console.log('[MOCK GEO] Starting simulated driver location for order:', orderId);
 
-    stopMockDriverLocation(); // Clear any previous interval
+    stopMockDriverLocation(); // Clear any previous mock interval
     activeOrderRef.current = orderId;
     socket.emit('joinOrder', orderId);
 
@@ -70,11 +71,11 @@ const OrdersManager = () => {
     mockIntervalRef.current = setInterval(() => {
       const lat = baseLat + (step * 0.0001);
       const lon = baseLon + (step * 0.0001);
-      console.log(`[MOCK GEO] Emitting step ${step}:`, { lat, lon });
+      console.log(`[MOCK GEO] Emitting location step ${step}:`, { lat, lon });
 
       socket.emit('driverLocation', { orderId, latitude: lat, longitude: lon });
       step++;
-      if (step > 20) stopMockDriverLocation(); // Stop after 20 steps
+      if (step > 20) stopMockDriverLocation();
     }, 3000);
   };
 
@@ -110,7 +111,10 @@ const OrdersManager = () => {
             <p>
               <strong>Status:</strong> {order.status}{' '}
               {order.status !== 'delivered' && (
-                <button onClick={() => updateStatus(order.id || order._id, order.status)}>
+                <button
+                  onClick={() => updateStatus(order.id || order._id, order.status)}
+                  style={{ marginLeft: '10px', padding: '5px 10px' }}
+                >
                   Mark as {getNextStatus(order.status)}
                 </button>
               )}
