@@ -15,7 +15,29 @@ const io = new Server(server, {
 // Use Render's port if available
 const PORT = process.env.PORT || 5000;
 
-app.use(cors());
+/* ------------------------------------------------------------------ */
+/*  CORS Configuration                                                 */
+/* ------------------------------------------------------------------ */
+const ALLOWED_ORIGINS = [
+  'https://shorethingsapp-1.onrender.com', // Frontend
+  'http://localhost:3000'                  // Local dev
+];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || ALLOWED_ORIGINS.includes(origin)) {
+        callback(null, true);
+      } else {
+        console.warn(`CORS blocked: ${origin}`);
+        callback(new Error('CORS not allowed'));
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],
+    credentials: true,
+  })
+);
+
 app.use(express.json()); // replaces bodyParser.json()
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -61,11 +83,9 @@ function safeWriteJSON(filePath, data) {
 // Make sure every order has a consistent { latitude, longitude } object
 function normalizeLocation(location) {
   if (!location) return { latitude: 33.881941, longitude: -118.409997 };
-  // If it was sent as an array [lon, lat]
   if (Array.isArray(location) && location.length >= 2) {
     return { latitude: Number(location[1]), longitude: Number(location[0]) };
   }
-  // If keys are lat/lon instead of latitude/longitude
   const latitude = location.latitude ?? location.lat;
   const longitude = location.longitude ?? location.lon;
   if (latitude != null && longitude != null) {
@@ -138,8 +158,6 @@ app.post('/api/orders', (req, res) => {
     safeWriteJSON(ordersPath, currentOrders);
 
     console.log('✅ Order saved:', newOrder);
-
-    // Notify any listeners (optional)
     io.emit('ordersUpdated', newOrder);
 
     res.status(201).json(newOrder);
@@ -231,7 +249,6 @@ app.post('/api/orders/status', (req, res) => {
 io.on('connection', (socket) => {
   console.log('🚛 Socket connected:', socket.id);
 
-  // Expect to receive an orderId; we'll create a predictable room name
   socket.on('joinOrder', (orderId) => {
     const room = `order-${orderId}`;
     socket.join(room);
