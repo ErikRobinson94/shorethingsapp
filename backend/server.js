@@ -1,7 +1,7 @@
+/* eslint-disable no-console */
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
-const bodyParser = require('body-parser');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
@@ -16,15 +16,72 @@ const io = new Server(server, {
 const PORT = process.env.PORT || 5000;
 
 app.use(cors());
-app.use(bodyParser.json());
+app.use(express.json()); // replaces bodyParser.json()
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-const getFile = (fileName) => path.join(__dirname, 'data', fileName);
+/* ------------------------------------------------------------------ */
+/*  Utilities                                                          */
+/* ------------------------------------------------------------------ */
+
+const DATA_DIR = path.join(__dirname, 'data');
+fs.mkdirSync(DATA_DIR, { recursive: true });
+
+const getFile = (fileName) => path.join(DATA_DIR, fileName);
+
+function ensureFile(fileName, initial = '[]') {
+  const p = getFile(fileName);
+  if (!fs.existsSync(p)) {
+    fs.writeFileSync(p, initial);
+  }
+}
+ensureFile('orders.json', '[]');
+ensureFile('items.json', '[]');
+ensureFile('vendors.json', '[]');
+
+function safeReadJSON(filePath, fallback = []) {
+  try {
+    if (!fs.existsSync(filePath)) return fallback;
+    const txt = fs.readFileSync(filePath, 'utf8');
+    if (!txt.trim()) return fallback;
+    return JSON.parse(txt);
+  } catch (e) {
+    console.error(`[safeReadJSON] Failed reading ${filePath}:`, e);
+    return fallback;
+  }
+}
+
+function safeWriteJSON(filePath, data) {
+  try {
+    fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+  } catch (e) {
+    console.error(`[safeWriteJSON] Failed writing ${filePath}:`, e);
+  }
+}
+
+// Make sure every order has a consistent { latitude, longitude } object
+function normalizeLocation(location) {
+  if (!location) return { latitude: 33.881941, longitude: -118.409997 };
+  // If it was sent as an array [lon, lat]
+  if (Array.isArray(location) && location.length >= 2) {
+    return { latitude: Number(location[1]), longitude: Number(location[0]) };
+  }
+  // If keys are lat/lon instead of latitude/longitude
+  const latitude = location.latitude ?? location.lat;
+  const longitude = location.longitude ?? location.lon;
+  if (latitude != null && longitude != null) {
+    return { latitude: Number(latitude), longitude: Number(longitude) };
+  }
+  return { latitude: 33.881941, longitude: -118.409997 };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Routes: Vendors / Items / Products                                 */
+/* ------------------------------------------------------------------ */
 
 // ✅ Vendors
 app.get('/api/vendors', (req, res) => {
   try {
-    const vendors = JSON.parse(fs.readFileSync(getFile('vendors.json')));
+    const vendors = safeReadJSON(getFile('vendors.json'), []);
     res.json(vendors);
   } catch (err) {
     console.error('Error reading vendors:', err);
@@ -35,7 +92,7 @@ app.get('/api/vendors', (req, res) => {
 // ✅ Items
 app.get('/api/items', (req, res) => {
   try {
-    const items = JSON.parse(fs.readFileSync(getFile('items.json')));
+    const items = safeReadJSON(getFile('items.json'), []);
     res.json(items);
   } catch (err) {
     console.error('Error reading items:', err);
@@ -43,9 +100,10 @@ app.get('/api/items', (req, res) => {
   }
 });
 
+// Alias
 app.get('/api/products', (req, res) => {
   try {
-    const products = JSON.parse(fs.readFileSync(getFile('items.json')));
+    const products = safeReadJSON(getFile('items.json'), []);
     res.json(products);
   } catch (err) {
     console.error('Error reading products:', err);
@@ -53,19 +111,17 @@ app.get('/api/products', (req, res) => {
   }
 });
 
+/* ------------------------------------------------------------------ */
+/*  Routes: Orders                                                     */
+/* ------------------------------------------------------------------ */
+
 // ✅ Place order
 app.post('/api/orders', (req, res) => {
   try {
     console.log('📩 Incoming order:', req.body);
 
     const order = req.body || {};
-    const coords = order.location || { latitude: 33.881941, longitude: -118.409997 };
-
-    // Normalize keys to latitude/longitude
-    const location = {
-      latitude: coords.latitude ?? coords.lat,
-      longitude: coords.longitude ?? coords.lon
-    };
+    const location = normalizeLocation(order.location);
 
     const newOrder = {
       id: Date.now(),
@@ -77,14 +133,15 @@ app.post('/api/orders', (req, res) => {
     };
 
     const ordersPath = getFile('orders.json');
-    const currentOrders = fs.existsSync(ordersPath)
-      ? JSON.parse(fs.readFileSync(ordersPath))
-      : [];
-
+    const currentOrders = safeReadJSON(ordersPath, []);
     currentOrders.push(newOrder);
-    fs.writeFileSync(ordersPath, JSON.stringify(currentOrders, null, 2));
+    safeWriteJSON(ordersPath, currentOrders);
 
     console.log('✅ Order saved:', newOrder);
+
+    // Notify any listeners (optional)
+    io.emit('ordersUpdated', newOrder);
+
     res.status(201).json(newOrder);
   } catch (err) {
     console.error('❌ Error saving order:', err);
@@ -92,10 +149,14 @@ app.post('/api/orders', (req, res) => {
   }
 });
 
-// ✅ Get all orders
+// ✅ Get all orders (normalized)
 app.get('/api/orders', (req, res) => {
   try {
-    const orders = JSON.parse(fs.readFileSync(getFile('orders.json')));
+    const ordersPath = getFile('orders.json');
+    const orders = safeReadJSON(ordersPath, []).map(o => ({
+      ...o,
+      location: normalizeLocation(o.location)
+    }));
     res.json(orders);
   } catch (err) {
     console.error('Error reading orders:', err);
@@ -107,12 +168,9 @@ app.get('/api/orders', (req, res) => {
 app.get('/api/orders/latest', (req, res) => {
   try {
     const ordersPath = getFile('orders.json');
-    const orders = fs.existsSync(ordersPath)
-      ? JSON.parse(fs.readFileSync(ordersPath))
-      : [];
-
+    const orders = safeReadJSON(ordersPath, []);
     const latest = orders.length > 0 ? orders[orders.length - 1] : null;
-    res.json(latest);
+    res.json(latest ? { ...latest, location: normalizeLocation(latest.location) } : null);
   } catch (err) {
     console.error('Error fetching latest order:', err);
     res.status(500).json({ error: 'Failed to fetch latest order' });
@@ -124,16 +182,12 @@ app.get('/api/orders/:id', (req, res) => {
   try {
     const orderId = req.params.id;
     const ordersPath = getFile('orders.json');
-    const orders = fs.existsSync(ordersPath)
-      ? JSON.parse(fs.readFileSync(ordersPath))
-      : [];
-
-    const order = orders.find(o => o.id.toString() === orderId);
+    const orders = safeReadJSON(ordersPath, []);
+    const order = orders.find(o => (o.id + '') === (orderId + ''));
     if (!order) {
       return res.status(404).json({ error: 'Order not found' });
     }
-
-    res.json(order);
+    res.json({ ...order, location: normalizeLocation(order.location) });
   } catch (err) {
     console.error('Error fetching order by ID:', err);
     res.status(500).json({ error: 'Failed to fetch order' });
@@ -146,15 +200,23 @@ app.post('/api/orders/status', (req, res) => {
 
   try {
     const ordersPath = getFile('orders.json');
-    const orders = fs.existsSync(ordersPath)
-      ? JSON.parse(fs.readFileSync(ordersPath))
-      : [];
+    const orders = safeReadJSON(ordersPath, []);
 
-    const updatedOrders = orders.map(order =>
-      order.id === orderId ? { ...order, status } : order
-    );
+    let updated = null;
+    const updatedOrders = orders.map(order => {
+      if ((order.id + '') === (orderId + '')) {
+        updated = { ...order, status };
+        return updated;
+      }
+      return order;
+    });
 
-    fs.writeFileSync(ordersPath, JSON.stringify(updatedOrders, null, 2));
+    safeWriteJSON(ordersPath, updatedOrders);
+
+    if (updated) {
+      io.to(`order-${orderId}`).emit('orderStatusUpdated', { orderId, status });
+    }
+
     res.status(200).json({ message: 'Status updated' });
   } catch (err) {
     console.error('Error updating order status:', err);
@@ -162,28 +224,33 @@ app.post('/api/orders/status', (req, res) => {
   }
 });
 
-// ✅ WebSocket setup
+/* ------------------------------------------------------------------ */
+/*  WebSocket (Socket.IO)                                              */
+/* ------------------------------------------------------------------ */
+
 io.on('connection', (socket) => {
   console.log('🚛 Socket connected:', socket.id);
 
-  socket.on('joinOrder', (roomName) => {
-    socket.join(roomName);
-    console.log(`🧾 Joined room ${roomName}`);
+  // Expect to receive an orderId; we'll create a predictable room name
+  socket.on('joinOrder', (orderId) => {
+    const room = `order-${orderId}`;
+    socket.join(room);
+    console.log(`🧾 ${socket.id} joined room ${room}`);
   });
 
   socket.on('driverLocation', ({ orderId, latitude, longitude }) => {
+    const room = `order-${orderId}`;
     console.log('📍 Driver location update:', { orderId, latitude, longitude });
-
     if (orderId) {
-      io.to(`order-${orderId}`).emit('driverLocation', { latitude, longitude });
+      io.to(room).emit('driverLocation', { latitude, longitude });
     }
   });
 
   socket.on('customerLocation', ({ orderId, latitude, longitude }) => {
+    const room = `order-${orderId}`;
     console.log('📌 Customer location update:', { orderId, latitude, longitude });
-
     if (orderId) {
-      io.to(`order-${orderId}`).emit('customerLocation', { latitude, longitude });
+      io.to(room).emit('customerLocation', { latitude, longitude });
     }
   });
 
@@ -191,6 +258,8 @@ io.on('connection', (socket) => {
     console.log('🔌 Socket disconnected:', socket.id);
   });
 });
+
+/* ------------------------------------------------------------------ */
 
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
