@@ -1,8 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
+import API_BASE_URL from '../config'; // ✅ Import API base URL
 
-const socket = io('https://shorethingsapp.onrender.com');
+const socket = io(API_BASE_URL);
 
 const OrdersManager = () => {
   const [orders, setOrders] = useState([]);
@@ -17,7 +18,7 @@ const OrdersManager = () => {
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get('/api/orders');
+      const res = await axios.get(`${API_BASE_URL}/api/orders`); // ✅ Updated
       setOrders(res.data.reverse());
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -33,7 +34,10 @@ const OrdersManager = () => {
   const updateStatus = async (orderId, currentStatus) => {
     const newStatus = getNextStatus(currentStatus);
     try {
-      await axios.post('/api/orders/status', { orderId, status: newStatus });
+      await axios.post(`${API_BASE_URL}/api/orders/status`, { // ✅ Updated
+        orderId,
+        status: newStatus,
+      });
 
       if (newStatus === 'en_route') {
         console.log('[STATUS] Marked en_route, starting GPS tracking...');
