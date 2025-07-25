@@ -1,6 +1,6 @@
 // src/App.jsx
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import HomePage from './pages/HomePage';
 import LocationPage from './pages/LocationPage';
 import MeetPage from './pages/MeetPage';
@@ -14,6 +14,12 @@ function App() {
   return (
     <CartProvider>
       <Router>
+        {/* Simple nav bar with Admin link */}
+        <nav style={{ padding: '10px', background: '#f0f0f0' }}>
+          <Link to="/" style={{ marginRight: '10px' }}>Home</Link>
+          <Link to="/admin">Admin</Link>
+        </nav>
+
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/location" element={<LocationPage />} />
