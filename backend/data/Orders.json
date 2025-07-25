@@ -22,10 +22,7 @@
       }
     ],
     "total": 31.48,
-    "location": {
-      "latitude": 33.9542016,
-      "longitude": -118.4038912
-    }
+    "location": { "latitude": 33.9542016, "longitude": -118.4038912 }
   },
   {
     "id": 1753200000002,
@@ -42,9 +39,6 @@
       }
     ],
     "total": 12.49,
-    "location": {
-      "latitude": 34.0169,
-      "longitude": -118.4951
-    }
+    "location": { "latitude": 34.0169, "longitude": -118.4951 }
   }
 ]
