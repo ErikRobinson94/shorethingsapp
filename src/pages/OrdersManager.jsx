@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
-import API_BASE_URL from '../config'; // ✅ Import API base URL
+import API_BASE_URL from '../config';
 
 const socket = io(API_BASE_URL);
 
@@ -11,14 +11,16 @@ const OrdersManager = () => {
   const activeOrderRef = useRef(null);
 
   useEffect(() => {
+    console.log('[DEBUG] API_BASE_URL:', API_BASE_URL);
     fetchOrders();
-    const interval = setInterval(fetchOrders, 5000); // Auto-refresh every 5s
+    const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
   }, []);
 
   const fetchOrders = async () => {
     try {
-      const res = await axios.get(`${API_BASE_URL}/api/orders`); // ✅ Updated
+      console.log(`[DEBUG] Fetching orders from: ${API_BASE_URL}/api/orders`);
+      const res = await axios.get(`${API_BASE_URL}/api/orders`);
       setOrders(res.data.reverse());
     } catch (err) {
       console.error('Error fetching orders:', err);
@@ -34,7 +36,7 @@ const OrdersManager = () => {
   const updateStatus = async (orderId, currentStatus) => {
     const newStatus = getNextStatus(currentStatus);
     try {
-      await axios.post(`${API_BASE_URL}/api/orders/status`, { // ✅ Updated
+      await axios.post(`${API_BASE_URL}/api/orders/status`, {
         orderId,
         status: newStatus,
       });
