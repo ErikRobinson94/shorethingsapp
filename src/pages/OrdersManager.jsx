@@ -11,6 +11,7 @@ const OrdersManager = () => {
   const [orders, setOrders] = useState([]);
   const watchIdRef = useRef(null);
   const activeOrderRef = useRef(null);
+  const mockIntervalRef = useRef(null);
 
   useEffect(() => {
     console.log('[DEBUG] API_BASE_URL:', API_BASE_URL);
@@ -38,12 +39,12 @@ const OrdersManager = () => {
     const newStatus = getNextStatus(currentStatus);
     try {
       await axios.post(`${BASE_URL}/api/orders/status`, { orderId, status: newStatus });
-      socket.emit('orderStatusUpdated', { orderId, status: newStatus }); // NEW: Notify tracker
+      socket.emit('orderStatusUpdated', { orderId, status: newStatus });
 
       if (newStatus === 'en_route') {
-        startSendingLocation(orderId);
+        startMockDriverLocation(orderId); // Mock location for testing
       } else if (newStatus === 'delivered') {
-        stopSendingLocation();
+        stopMockDriverLocation();
       }
 
       fetchOrders();
@@ -52,34 +53,35 @@ const OrdersManager = () => {
     }
   };
 
-  const startSendingLocation = (orderId) => {
-    if (!navigator.geolocation) {
-      console.error('[GEO] Geolocation not supported');
-      return;
-    }
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+  /**
+   * Mock driver location in El Segundo for testing
+   */
+  const startMockDriverLocation = (orderId) => {
+    console.log('[MOCK GEO] Simulating driver location in El Segundo...');
 
+    stopMockDriverLocation(); // Clear any previous interval
     activeOrderRef.current = orderId;
     socket.emit('joinOrder', orderId);
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        console.log(`[GEO] Sending location for order ${orderId}:`, { latitude, longitude });
-        socket.emit('driverLocation', { orderId, latitude, longitude });
-      },
-      (err) => console.error('[GEO ERROR]', err),
-      { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
-    );
+    let step = 0;
+    const baseLat = 33.9164;
+    const baseLon = -118.4042;
+
+    mockIntervalRef.current = setInterval(() => {
+      const lat = baseLat + (step * 0.0001);
+      const lon = baseLon + (step * 0.0001);
+      console.log(`[MOCK GEO] Emitting step ${step}:`, { lat, lon });
+
+      socket.emit('driverLocation', { orderId, latitude: lat, longitude: lon });
+      step++;
+      if (step > 20) stopMockDriverLocation(); // Stop after 20 steps
+    }, 3000);
   };
 
-  const stopSendingLocation = () => {
-    if (watchIdRef.current !== null) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
+  const stopMockDriverLocation = () => {
+    if (mockIntervalRef.current) {
+      clearInterval(mockIntervalRef.current);
+      mockIntervalRef.current = null;
     }
     activeOrderRef.current = null;
   };
