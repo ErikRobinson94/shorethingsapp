@@ -1,9 +1,16 @@
+// src/pages/OrdersManager.jsx
 import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { io } from 'socket.io-client';
 import API_BASE_URL from '../config';
 
-const socket = io(API_BASE_URL);
+// Hard fallback in case API_BASE_URL isn't set correctly
+const BASE_URL =
+  (typeof API_BASE_URL === 'string' && API_BASE_URL.trim()) ||
+  'https://shorethingsapp.onrender.com';
+
+// Use the same base for sockets
+const socket = io(BASE_URL, { transports: ['websocket'] });
 
 const OrdersManager = () => {
   const [orders, setOrders] = useState([]);
@@ -12,18 +19,24 @@ const OrdersManager = () => {
 
   useEffect(() => {
     console.log('[DEBUG] API_BASE_URL:', API_BASE_URL);
+    console.log('[DEBUG] RESOLVED BASE_URL:', BASE_URL);
+
     fetchOrders();
     const interval = setInterval(fetchOrders, 5000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchOrders = async () => {
+    const url = `${BASE_URL}/api/orders`;
     try {
-      console.log(`[DEBUG] Fetching orders from: ${API_BASE_URL}/api/orders`);
-      const res = await axios.get(`${API_BASE_URL}/api/orders`);
-      setOrders(res.data.reverse());
+      console.log('[DEBUG] Fetching orders from:', url);
+      const res = await axios.get(url);
+      const data = Array.isArray(res.data) ? [...res.data].reverse() : [];
+      setOrders(data);
     } catch (err) {
-      console.error('Error fetching orders:', err);
+      const status = err?.response?.status;
+      console.error(`[OrdersManager] Error fetching orders (status: ${status || 'n/a'}):`, err);
     }
   };
 
@@ -35,11 +48,11 @@ const OrdersManager = () => {
 
   const updateStatus = async (orderId, currentStatus) => {
     const newStatus = getNextStatus(currentStatus);
+    const url = `${BASE_URL}/api/orders/status`;
+
     try {
-      await axios.post(`${API_BASE_URL}/api/orders/status`, {
-        orderId,
-        status: newStatus,
-      });
+      console.log('[DEBUG] Updating status at:', url, { orderId, newStatus });
+      await axios.post(url, { orderId, status: newStatus });
 
       if (newStatus === 'en_route') {
         console.log('[STATUS] Marked en_route, starting GPS tracking...');
@@ -48,7 +61,8 @@ const OrdersManager = () => {
 
       fetchOrders();
     } catch (err) {
-      console.error('Error updating status:', err);
+      const status = err?.response?.status;
+      console.error(`[OrdersManager] Error updating status (status: ${status || 'n/a'}):`, err);
     }
   };
 
@@ -85,7 +99,7 @@ const OrdersManager = () => {
       <ul>
         {orders.map((order, idx) => (
           <li key={order._id || order.id} style={{ marginBottom: '20px' }}>
-            <strong>Order #{orders.length - idx}</strong>
+          <strong>Order #{orders.length - idx}</strong>
             <ul>
               {order.items.map((item, i) => (
                 <li key={i}>
@@ -97,7 +111,8 @@ const OrdersManager = () => {
             <p><strong>Time:</strong> {new Date(order.timestamp).toLocaleString()}</p>
             {order.location && (
               <p>
-                <strong>Location:</strong> Lat {order.location.lat?.toFixed(5) || order.location.latitude?.toFixed(5)}, 
+                <strong>Location:</strong>{' '}
+                Lat {order.location.lat?.toFixed(5) || order.location.latitude?.toFixed(5)},{' '}
                 Lon {order.location.lon?.toFixed(5) || order.location.longitude?.toFixed(5)}
               </p>
             )}
