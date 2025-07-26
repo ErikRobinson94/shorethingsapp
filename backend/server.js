@@ -1,4 +1,4 @@
-\/* eslint-disable no-console */
+/* eslint-disable no-console */
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
