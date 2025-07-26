@@ -1,4 +1,4 @@
-/* eslint-disable no-console */
+\/* eslint-disable no-console */
 const express = require('express');
 const fs = require('fs');
 const cors = require('cors');
@@ -12,15 +12,15 @@ const io = new Server(server, {
   cors: { origin: '*' }
 });
 
-// Use Render's port if available
 const PORT = process.env.PORT || 5000;
+const buildPath = path.join(__dirname, '../build'); // <-- NEW
 
 /* ------------------------------------------------------------------ */
 /*  CORS Configuration                                                 */
 /* ------------------------------------------------------------------ */
 const ALLOWED_ORIGINS = [
-  'https://shorethingsapp-1.onrender.com', // Frontend
-  'http://localhost:3000'                  // Local dev
+  'https://shorethingsapp-1.onrender.com', 
+  'http://localhost:3000'
 ];
 
 app.use(
@@ -38,11 +38,12 @@ app.use(
   })
 );
 
-app.use(express.json()); // replaces bodyParser.json()
+app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(buildPath)); // <-- NEW
 
 /* ------------------------------------------------------------------ */
-/*  Ping Route for Debugging                                           */
+/*  Ping Route                                                         */
 /* ------------------------------------------------------------------ */
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
@@ -51,7 +52,6 @@ app.get('/api/ping', (req, res) => {
 /* ------------------------------------------------------------------ */
 /*  Utilities                                                          */
 /* ------------------------------------------------------------------ */
-
 const DATA_DIR = path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -87,7 +87,6 @@ function safeWriteJSON(filePath, data) {
   }
 }
 
-// Make sure every order has a consistent { latitude, longitude } object
 function normalizeLocation(location) {
   if (!location) return { latitude: 33.881941, longitude: -118.409997 };
   if (Array.isArray(location) && location.length >= 2) {
@@ -104,8 +103,6 @@ function normalizeLocation(location) {
 /* ------------------------------------------------------------------ */
 /*  Routes: Vendors / Items / Products                                 */
 /* ------------------------------------------------------------------ */
-
-// ✅ Vendors
 app.get('/api/vendors', (req, res) => {
   try {
     const vendors = safeReadJSON(getFile('vendors.json'), []);
@@ -116,7 +113,6 @@ app.get('/api/vendors', (req, res) => {
   }
 });
 
-// ✅ Items
 app.get('/api/items', (req, res) => {
   try {
     const items = safeReadJSON(getFile('items.json'), []);
@@ -127,7 +123,6 @@ app.get('/api/items', (req, res) => {
   }
 });
 
-// Alias
 app.get('/api/products', (req, res) => {
   try {
     const products = safeReadJSON(getFile('items.json'), []);
@@ -141,8 +136,6 @@ app.get('/api/products', (req, res) => {
 /* ------------------------------------------------------------------ */
 /*  Routes: Orders                                                     */
 /* ------------------------------------------------------------------ */
-
-// ✅ Place order
 app.post('/api/orders', (req, res) => {
   try {
     console.log('📩 Incoming order:', req.body);
@@ -174,7 +167,6 @@ app.post('/api/orders', (req, res) => {
   }
 });
 
-// ✅ Get all orders (normalized)
 app.get('/api/orders', (req, res) => {
   try {
     const ordersPath = getFile('orders.json');
@@ -189,7 +181,6 @@ app.get('/api/orders', (req, res) => {
   }
 });
 
-// ✅ Get latest order
 app.get('/api/orders/latest', (req, res) => {
   try {
     const ordersPath = getFile('orders.json');
@@ -202,7 +193,6 @@ app.get('/api/orders/latest', (req, res) => {
   }
 });
 
-// ✅ Get order by ID
 app.get('/api/orders/:id', (req, res) => {
   try {
     const orderId = req.params.id;
@@ -219,7 +209,6 @@ app.get('/api/orders/:id', (req, res) => {
   }
 });
 
-// ✅ Update order status
 app.post('/api/orders/status', (req, res) => {
   const { orderId, status } = req.body;
 
@@ -252,7 +241,6 @@ app.post('/api/orders/status', (req, res) => {
 /* ------------------------------------------------------------------ */
 /*  WebSocket (Socket.IO)                                              */
 /* ------------------------------------------------------------------ */
-
 io.on('connection', (socket) => {
   console.log('🚛 Socket connected:', socket.id);
 
@@ -284,17 +272,16 @@ io.on('connection', (socket) => {
 });
 
 /* ------------------------------------------------------------------ */
-/*  SPA Fallback for React Router                                      */
+/*  SPA FALLBACK (React Router)                                        */
 /* ------------------------------------------------------------------ */
-const buildPath = path.join(__dirname, '..', 'build');
-app.use(express.static(buildPath));
-app.use((req, res, next) => {
-  if (req.path.startsWith('/api')) return next();
+app.get('*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API route not found' });
+  }
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
 /* ------------------------------------------------------------------ */
-
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });
