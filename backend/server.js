@@ -286,13 +286,10 @@ io.on('connection', (socket) => {
 /* ------------------------------------------------------------------ */
 /*  SPA Fallback for React Router                                      */
 /* ------------------------------------------------------------------ */
-const buildPath = path.join(__dirname, '../build');
+const buildPath = path.join(__dirname, '..', 'build');
 app.use(express.static(buildPath));
-
-app.get('/*', (req, res) => {
-  if (req.path.startsWith('/api')) {
-    return res.status(404).json({ error: 'API route not found' });
-  }
+app.use((req, res, next) => {
+  if (req.path.startsWith('/api')) return next();
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
