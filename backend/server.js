@@ -42,12 +42,6 @@ app.use(express.json()); // replaces bodyParser.json()
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 /* ------------------------------------------------------------------ */
-/*  Serve React Build                                                  */
-/* ------------------------------------------------------------------ */
-const buildPath = path.join(__dirname, '..', 'build');
-app.use(express.static(buildPath));
-
-/* ------------------------------------------------------------------ */
 /*  Ping Route for Debugging                                           */
 /* ------------------------------------------------------------------ */
 app.get('/api/ping', (req, res) => {
@@ -292,8 +286,13 @@ io.on('connection', (socket) => {
 /* ------------------------------------------------------------------ */
 /*  SPA Fallback for React Router                                      */
 /* ------------------------------------------------------------------ */
-app.get('*', (req, res) => {
-  if (req.path.startsWith('/api')) return res.status(404).json({ error: 'API route not found' });
+const buildPath = path.join(__dirname, '../build');
+app.use(express.static(buildPath));
+
+app.get('/*', (req, res) => {
+  if (req.path.startsWith('/api')) {
+    return res.status(404).json({ error: 'API route not found' });
+  }
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
