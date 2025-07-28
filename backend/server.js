@@ -12,15 +12,14 @@ const io = new Server(server, {
   cors: { origin: '*' }
 });
 
-// Use Render's port if available
 const PORT = process.env.PORT || 5000;
 
 /* ------------------------------------------------------------------ */
 /*  CORS Configuration                                                 */
 /* ------------------------------------------------------------------ */
 const ALLOWED_ORIGINS = [
-  'https://shorethingsapp-1.onrender.com', // Frontend
-  'http://localhost:3000'                  // Local dev
+  'https://shorethingsapp.onrender.com', // ✅ LIVE Frontend
+  'http://localhost:3000'                // Local dev
 ];
 
 app.use(
@@ -38,19 +37,13 @@ app.use(
   })
 );
 
-app.use(express.json()); // replaces bodyParser.json()
+app.use(express.json());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-/* ------------------------------------------------------------------ */
-/*  Ping Route for Debugging                                           */
-/* ------------------------------------------------------------------ */
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
 
-/* ------------------------------------------------------------------ */
-/*  Utilities                                                          */
-/* ------------------------------------------------------------------ */
 const DATA_DIR = path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -99,9 +92,7 @@ function normalizeLocation(location) {
   return { latitude: 33.881941, longitude: -118.409997 };
 }
 
-/* ------------------------------------------------------------------ */
-/*  API Routes                                                         */
-/* ------------------------------------------------------------------ */
+/* ------------------------ API Routes ---------------------------- */
 app.get('/api/vendors', (req, res) => {
   try {
     const vendors = safeReadJSON(getFile('vendors.json'), []);
@@ -234,9 +225,7 @@ app.post('/api/orders/status', (req, res) => {
   }
 });
 
-/* ------------------------------------------------------------------ */
-/*  WebSocket Setup                                                    */
-/* ------------------------------------------------------------------ */
+/* ---------------------- WebSocket ------------------------- */
 io.on('connection', (socket) => {
   console.log('🚛 Socket connected:', socket.id);
 
@@ -267,9 +256,7 @@ io.on('connection', (socket) => {
   });
 });
 
-/* ------------------------------------------------------------------ */
-/*  Serve React Frontend from frontend/build                          */
-/* ------------------------------------------------------------------ */
+/* ------------------- Serve React Frontend ------------------- */
 const buildPath = path.join(__dirname, '../frontend/build');
 app.use(express.static(buildPath));
 
@@ -280,7 +267,6 @@ app.get('*', (req, res) => {
   res.sendFile(path.join(buildPath, 'index.html'));
 });
 
-/* ------------------------------------------------------------------ */
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });
