@@ -13,10 +13,32 @@
   margin: 8px 0;
 }
 
-.summary-row input {
-  width: 80px;
+.tip-section {
+  margin: 12px 0;
+}
+
+.tip-buttons {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.tip-buttons button {
+  background: #eee;
+  border: 1px solid #ccc;
+  padding: 6px 12px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.tip-buttons button:hover {
+  background: #ddd;
+}
+
+.tip-section input {
+  width: 100px;
   padding: 4px;
-  margin-left: 8px;
+  margin-top: 4px;
 }
 
 .total {

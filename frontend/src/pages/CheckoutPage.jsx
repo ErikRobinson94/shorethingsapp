@@ -26,6 +26,10 @@ const CheckoutPage = () => {
     setTip(isNaN(value) ? 0 : value);
   };
 
+  const setQuickTip = (amount) => {
+    setTip(amount);
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!stripe || !elements || !agree) return;
@@ -46,7 +50,6 @@ const CheckoutPage = () => {
 
     const total = subtotal + tip;
 
-    // Navigate to OrderTrackerPage with all relevant data
     navigate('/order-tracker', {
       state: {
         selectedItems,
@@ -63,21 +66,32 @@ const CheckoutPage = () => {
   return (
     <div className="checkout-container">
       <h2>Checkout</h2>
-      {selectedItems.map((item, index) => (
-        <div key={index} className="item-row">
-          <span>{item.name} x {item.quantity}</span>
-          <span>${(item.price * item.quantity).toFixed(2)}</span>
-        </div>
-      ))}
+
+      {selectedItems.length > 0 ? (
+        selectedItems.map((item, index) => (
+          <div key={index} className="item-row">
+            <span>{item.name} x {item.quantity}</span>
+            <span>${(item.price * item.quantity).toFixed(2)}</span>
+          </div>
+        ))
+      ) : (
+        <p>No items found in your cart.</p>
+      )}
+
       <hr />
       <div className="summary-row">
         <span>Subtotal:</span>
         <strong>${subtotal.toFixed(2)}</strong>
       </div>
-      <div className="summary-row">
-        <label htmlFor="tip">Tip: $</label>
+
+      <div className="tip-section">
+        <label>Tip: </label>
+        <div className="tip-buttons">
+          <button onClick={() => setQuickTip(1)}>$1</button>
+          <button onClick={() => setQuickTip(2)}>$2</button>
+          <button onClick={() => setQuickTip(3)}>$3</button>
+        </div>
         <input
-          id="tip"
           type="number"
           value={tip}
           onChange={handleTipChange}
@@ -85,6 +99,7 @@ const CheckoutPage = () => {
           min="0"
         />
       </div>
+
       <div className="summary-row total">
         <span>Total:</span>
         <strong>${(subtotal + tip).toFixed(2)}</strong>
