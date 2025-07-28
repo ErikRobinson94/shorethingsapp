@@ -1,95 +1,81 @@
+/* src/styles/CheckoutPage.css */
 .checkout-page {
-  padding: 32px;
+  padding: 24px;
   max-width: 600px;
   margin: 40px auto;
   background: #fff;
   border-radius: 16px;
-  box-shadow: 0 0 18px rgba(0, 0, 0, 0.08);
-  font-family: 'Segoe UI', sans-serif;
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
+  font-family: sans-serif;
 }
 
 .checkout-page h2 {
-  text-align: center;
-  margin-bottom: 24px;
   font-size: 2rem;
-  color: #222;
+  margin-bottom: 20px;
+  font-weight: bold;
+}
+
+.checkout-page h3 {
+  font-size: 1.2rem;
+  margin-bottom: 12px;
+  font-weight: bold;
 }
 
 .tip-buttons {
   display: flex;
-  justify-content: space-between;
+  gap: 12px;
   margin-bottom: 20px;
 }
 
 .tip-buttons button {
   flex: 1;
-  margin-right: 10px;
-  padding: 10px 14px;
-  background-color: #f0f0f0;
-  border: 2px solid #ccc;
-  border-radius: 10px;
-  cursor: pointer;
-  font-size: 1rem;
-  font-weight: bold;
-  transition: 0.2s ease;
-}
-
-.tip-buttons button:last-child {
-  margin-right: 0;
-}
-
-.tip-buttons button:hover {
-  background-color: #e2e2e2;
-}
-
-.selected-tip {
-  border-color: #007bff;
-  background-color: #e6f0ff;
-}
-
-.card-section {
-  margin-top: 24px;
-  margin-bottom: 20px;
-}
-
-.card-section label {
-  display: block;
-  margin-bottom: 6px;
-  font-weight: bold;
-}
-
-.card-box {
-  padding: 14px;
-  border-radius: 10px;
+  padding: 12px;
+  border-radius: 8px;
   border: 1px solid #ccc;
-  background-color: #fafafa;
+  background: #f5f5f5;
+  font-weight: bold;
+  cursor: pointer;
 }
 
-.checkout-terms {
-  margin: 16px 0;
+.tip-buttons button.active {
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.card-element-wrapper {
+  border: 1px solid #ddd;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  background: #fafafa;
+}
+
+.terms {
   display: flex;
-  align-items: center;
-  font-size: 0.95rem;
+  align-items: flex-start;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
 }
 
-.checkout-terms input {
-  margin-right: 10px;
+.terms input {
+  margin-right: 8px;
+  margin-top: 3px;
 }
 
 .checkout-page button[type="submit"] {
-  background-color: #007bff;
+  background-color: #28a745;
   color: white;
+  padding: 14px;
   font-size: 1rem;
-  padding: 12px;
-  border-radius: 10px;
-  border: none;
-  width: 100%;
   font-weight: bold;
+  border: none;
+  border-radius: 8px;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  width: 100%;
 }
 
-.checkout-page button[type="submit"]:disabled {
+.checkout-page button[disabled] {
   background-color: #ccc;
   cursor: not-allowed;
 }

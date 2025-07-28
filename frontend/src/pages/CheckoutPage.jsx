@@ -1,95 +1,113 @@
+// src/pages/CheckoutPage.jsx
 import React, { useState } from 'react';
+import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
-import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
+import { loadStripe } from '@stripe/stripe-js';
+import {
+  Elements,
+  CardElement,
+  useStripe,
+  useElements
+} from '@stripe/react-stripe-js';
 import '../styles/CheckoutPage.css';
 
-const CheckoutPage = () => {
-  const [tip, setTip] = useState(5);
+const stripePromise = loadStripe('pk_live_51IjUQ9GqiLUJNfkCPG6MmpR3Lxph5bx3jgScGiEvKGpzuYsjRVFJute2d97Yz9Fj3J5tzzrhYDp8HuT4EIMOqKzV00pTnJO1SV');
+
+const CheckoutForm = () => {
+  const { cartItems, location, clearCart } = useCart();
+  const [tip, setTip] = useState(0);
   const [agreed, setAgreed] = useState(false);
-  const [error, setError] = useState('');
+  const [processing, setProcessing] = useState(false);
   const stripe = useStripe();
   const elements = useElements();
   const navigate = useNavigate();
 
-  const total = 20 + tip; // Assume base order is $20 for demo purposes
+  const total = cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+  const finalAmount = total + tip;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError('');
+    if (!stripe || !elements || !agreed || processing) return;
 
-    if (!agreed) {
-      setError('You must agree to the Terms of Service before checking out.');
-      return;
-    }
+    setProcessing(true);
 
-    if (!stripe || !elements) return;
+    const response = await fetch(`${import.meta.env.VITE_SERVER_URL || ''}/create-payment-intent`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ amount: Math.round(finalAmount * 100) }),
+    });
 
-    const cardElement = elements.getElement(CardElement);
+    const { clientSecret } = await response.json();
+    const result = await stripe.confirmCardPayment(clientSecret, {
+      payment_method: { card: elements.getElement(CardElement) }
+    });
 
-    try {
-      const res = await fetch('/api/create-payment-intent', {
+    if (result.error) {
+      alert(result.error.message);
+      setProcessing(false);
+    } else if (result.paymentIntent.status === 'succeeded') {
+      const placeOrderRes = await fetch(`${import.meta.env.VITE_SERVER_URL || ''}/place-order`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total * 100 }), // Convert to cents
+        body: JSON.stringify({
+          items: cartItems,
+          location,
+          tip,
+          total: finalAmount
+        }),
       });
-
-      const { clientSecret, orderId } = await res.json();
-
-      const result = await stripe.confirmCardPayment(clientSecret, {
-        payment_method: {
-          card: cardElement,
-        },
-      });
-
-      if (result.error) {
-        setError(result.error.message);
-      } else {
-        if (result.paymentIntent.status === 'succeeded') {
-          navigate(`/track-order/${orderId}`);
-        }
-      }
-    } catch (err) {
-      console.error('Payment error:', err);
-      setError('Payment failed. Please try again.');
+      const { orderId } = await placeOrderRes.json();
+      clearCart();
+      navigate(`/track-order/${orderId}`);
     }
   };
 
   return (
-    <div className="checkout-container">
-      <h1>Checkout</h1>
+    <form className="checkout-page" onSubmit={handleSubmit}>
+      <h2>Checkout</h2>
 
-      <div className="tip-section">
-        <h3>Add a Tip</h3>
-        <div className="tip-buttons">
-          <button onClick={() => setTip(5)} className={tip === 5 ? 'selected' : ''}>$5 (QUICK)</button>
-          <button onClick={() => setTip(10)} className={tip === 10 ? 'selected' : ''}>$10 (QUICKER)</button>
-          <button onClick={() => setTip(15)} className={tip === 15 ? 'selected' : ''}>$15 (QUICKEST)</button>
-        </div>
+      <h3>Add a Tip</h3>
+      <div className="tip-buttons">
+        {[5, 10, 15].map((amt) => (
+          <button
+            type="button"
+            key={amt}
+            className={tip === amt ? 'active' : ''}
+            onClick={() => setTip(amt)}
+          >
+            ${amt} {amt === 5 ? '(QUICK)' : amt === 10 ? '(QUICKER)' : '(QUICKEST)'}
+          </button>
+        ))}
       </div>
 
-      <form onSubmit={handleSubmit} className="payment-form">
-        <label>Card Details</label>
+      <h4>Card Details</h4>
+      <div className="card-element-wrapper">
         <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
-        
-        <div className="tos">
-          <input
-            type="checkbox"
-            checked={agreed}
-            onChange={() => setAgreed(!agreed)}
-          />
-          <label>
-            I agree to the Terms of Service. Orders cannot be modified after submission.
-          </label>
-        </div>
+      </div>
 
-        {error && <div className="error">{error}</div>}
+      <div className="terms">
+        <input
+          type="checkbox"
+          id="tos"
+          checked={agreed}
+          onChange={(e) => setAgreed(e.target.checked)}
+        />
+        <label htmlFor="tos">
+          I agree to the Terms of Service. Orders cannot be modified after submission.
+        </label>
+      </div>
 
-        <button type="submit" disabled={!stripe || !agreed}>
-          Pay ${total.toFixed(2)}
-        </button>
-      </form>
-    </div>
+      <button type="submit" disabled={!stripe || !agreed || processing}>
+        {processing ? 'Processing...' : `Pay $${finalAmount.toFixed(2)}`}
+      </button>
+    </form>
   );
 };
+
+const CheckoutPage = () => (
+  <Elements stripe={stripePromise}>
+    <CheckoutForm />
+  </Elements>
+);
 
 export default CheckoutPage;
