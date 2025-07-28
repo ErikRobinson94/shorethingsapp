@@ -1,94 +1,105 @@
 // src/pages/CheckoutPage.jsx
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import '../styles/CheckoutPage.css';
 
 const CheckoutPage = () => {
   const { cart, clearCart } = useCart();
   const [tip, setTip] = useState(0);
   const [agreed, setAgreed] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const stripe = useStripe();
+  const elements = useElements();
   const navigate = useNavigate();
 
-  const totalWithoutTip = (cart || []).reduce((sum, item) => sum + item.price * item.quantity, 0);
-  const totalWithTip = totalWithoutTip + Number(tip);
+  const subtotal = cart.reduce((sum, item) => sum + item.price, 0);
+  const total = (subtotal + Number(tip)).toFixed(2);
 
-  const handleTipChange = (e) => {
-    const value = e.target.value;
-    if (!isNaN(value)) setTip(Number(value));
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!agreed || cart.length === 0) return;
+    if (!stripe || !elements || !agreed) return;
+
+    setLoading(true);
+
+    const { error, paymentMethod } = await stripe.createPaymentMethod({
+      type: 'card',
+      card: elements.getElement(CardElement),
+    });
+
+    if (error) {
+      alert(error.message);
+      setLoading(false);
+      return;
+    }
 
     const orderData = {
-      cart,
+      items: cart,
+      subtotal,
       tip,
-      total: totalWithTip,
-      timestamp: new Date().toISOString(),
+      total,
+      paymentMethodId: paymentMethod.id,
     };
 
-    // Save order data to localStorage
-    localStorage.setItem('order', JSON.stringify(orderData));
+    const res = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(orderData),
+    });
 
-    // Clear cart and navigate to tracker
-    clearCart();
-    navigate('/order-tracker');
+    const data = await res.json();
+    if (data.success) {
+      clearCart();
+      navigate(`/track-order/${data.orderId}`);
+    } else {
+      alert(data.message || 'Payment failed');
+    }
+
+    setLoading(false);
   };
 
   return (
     <div className="checkout-container">
       <h2>Checkout</h2>
-      <div className="checkout-items">
-        {(cart || []).map((item, index) => (
-          <div key={index} className="checkout-item">
-            <span>{item.name}</span>
-            <span>{item.quantity} x ${item.price.toFixed(2)}</span>
-            <span>${(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-        ))}
-      </div>
-
-      <div className="checkout-summary">
-        <div className="summary-row">
-          <span>Subtotal:</span>
-          <span>${totalWithoutTip.toFixed(2)}</span>
+      {cart.map((item, i) => (
+        <div key={i} className="checkout-item">
+          {item.name} x ${item.price.toFixed(2)}
         </div>
-
-        <div className="summary-row">
-          <label htmlFor="tip">Tip: $</label>
+      ))}
+      <hr />
+      <div className="checkout-summary">
+        <p>Subtotal: <strong>${subtotal.toFixed(2)}</strong></p>
+        <p>
+          Tip: $
           <input
-            id="tip"
             type="number"
             value={tip}
-            onChange={handleTipChange}
-            min="0"
-            step="1"
-            className="tip-input"
+            onChange={(e) => setTip(e.target.value)}
+            style={{ width: '60px' }}
           />
-        </div>
-
-        <div className="summary-row total">
-          <strong>Total:</strong>
-          <strong>${totalWithTip.toFixed(2)}</strong>
-        </div>
-
-        <div className="agreement">
-          <label>
-            <input type="checkbox" checked={agreed} onChange={() => setAgreed(!agreed)} />
-            I agree to the terms and conditions.
-          </label>
-        </div>
-
-        <button
-          onClick={handleSubmit}
-          disabled={!agreed || cart.length === 0}
-          className="submit-btn"
-        >
-          Submit Order
-        </button>
+        </p>
+        <p><strong>Total: ${total}</strong></p>
       </div>
+
+      <form onSubmit={handleSubmit} className="checkout-form">
+        <div className="card-section">
+          <CardElement />
+        </div>
+
+        <label>
+          <input
+            type="checkbox"
+            checked={agreed}
+            onChange={(e) => setAgreed(e.target.checked)}
+          />
+          I agree to the terms and conditions.
+        </label>
+
+        <button type="submit" disabled={!agreed || loading || !stripe}>
+          {loading ? 'Processing...' : 'Submit Order'}
+        </button>
+      </form>
     </div>
   );
 };
