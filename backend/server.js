@@ -5,6 +5,9 @@ const cors = require('cors');
 const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
+const Stripe = require('stripe');
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // Add your Render env variable: STRIPE_SECRET_KEY
 
 const app = express();
 const server = http.createServer(app);
@@ -226,6 +229,25 @@ app.post('/api/orders/status', (req, res) => {
   } catch (err) {
     console.error('Error updating order status:', err);
     res.status(500).json({ error: 'Failed to update status' });
+  }
+});
+
+/* ------------------------ STRIPE PAYMENT ENDPOINT ---------------------------- */
+app.post('/api/create-payment-intent', async (req, res) => {
+  const { amount } = req.body;
+
+  try {
+    const paymentIntent = await stripe.paymentIntents.create({
+      amount,
+      currency: 'usd',
+      automatic_payment_methods: { enabled: true },
+    });
+
+    const orderId = Date.now(); // or use a UUID if preferred
+    res.json({ clientSecret: paymentIntent.client_secret, orderId });
+  } catch (err) {
+    console.error('Stripe error:', err);
+    res.status(500).json({ error: 'Stripe payment failed' });
   }
 });
 
