@@ -18,8 +18,8 @@ const PORT = process.env.PORT || 5000;
 /*  CORS Configuration                                                 */
 /* ------------------------------------------------------------------ */
 const ALLOWED_ORIGINS = [
-  'https://shorethingsapp.onrender.com', // ✅ LIVE Frontend
-  'http://localhost:3000'                // Local dev
+  'https://shorethingsapp.onrender.com',
+  'http://localhost:3000'
 ];
 
 app.use(
@@ -130,12 +130,16 @@ app.post('/api/orders', (req, res) => {
     const order = req.body || {};
     const location = normalizeLocation(order.location);
 
+    const total = order.discountCode === 'TESTORDER' ? 0.01 : (order.total || 0);
+
     const newOrder = {
       id: Date.now(),
       timestamp: new Date().toISOString(),
       status: 'placed',
       items: order.items || [],
-      total: order.total || 0,
+      total,
+      tip: order.tip || 0,
+      discountCode: order.discountCode || '',
       location
     };
 
@@ -270,3 +274,4 @@ app.get('*', (req, res) => {
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });
+
