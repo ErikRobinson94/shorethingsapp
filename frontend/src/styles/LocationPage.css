@@ -1,0 +1,119 @@
+/* Reset */
+html, body, #root {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  background: #F9FAFB;
+  color: #1A1A1A;
+  height: 100%;
+}
+
+/* Mobile-style container */
+.location-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 1rem;
+  height: 100vh;
+  max-width: 430px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Header */
+.location-page h1 {
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+
+/* Button */
+.location-page button {
+  background-color: #2BA7A3;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-bottom: 1rem;
+  width: 100%;
+  max-width: 400px;
+}
+
+.location-page button:hover {
+  background-color: #218985;
+}
+
+.location-page button:disabled {
+  background-color: #B0E0DD;
+  cursor: not-allowed;
+}
+
+/* Error */
+.error {
+  color: #e63946;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  text-align: center;
+  max-width: 400px;
+}
+
+/* Map box */
+#map-container {
+  width: 100%;
+  height: 40vh;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.05);
+  max-width: 400px;
+}
+
+/* Marker */
+.custom-marker .pin {
+  width: 20px;
+  height: 20px;
+  background-color: #e63946;
+  border-radius: 50%;
+  border: 2px solid white;
+}
+
+/* Lat/lon display */
+.coord-display {
+  font-size: 1rem;
+  color: #333;
+  text-align: center;
+  font-weight: 500;
+  margin: 1rem 0;
+}
+
+/* Add items CTA (bottom but not sticky) */
+.add-items-cta {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  margin-top: 1rem;
+}
+
+.add-items-cta button {
+  background-color: #2BA7A3;
+  color: white;
+  font-size: 1.1rem;
+  font-weight: 600;
+  padding: 0.9rem 2rem;
+  border: none;
+  border-radius: 12px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+
+.add-items-cta button:hover {
+  background-color: #218985;
+}

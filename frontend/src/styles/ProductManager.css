@@ -1,0 +1,34 @@
+.admin-upload {
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 12px rgba(0, 0, 0, 0.05);
+  max-width: 600px;
+  margin: auto;
+}
+
+.admin-upload form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.admin-upload input,
+.admin-upload select,
+.admin-upload button {
+  padding: 0.75rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.preview {
+  max-width: 100px;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+}
+
+.status-msg {
+  margin-top: 1rem;
+  font-weight: bold;
+}
