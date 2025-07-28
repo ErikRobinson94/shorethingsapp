@@ -1,84 +1,93 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { useCart } from '../context/CartContext';
+import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import '../styles/CheckoutPage.css';
 
-const BACKEND_URL = 'https://shorethingsapp.onrender.com';
-
 const CheckoutPage = () => {
+  const [tip, setTip] = useState(5);
+  const [agreed, setAgreed] = useState(false);
+  const [error, setError] = useState('');
+  const stripe = useStripe();
+  const elements = useElements();
   const navigate = useNavigate();
-  const { cart, clearCart } = useCart();
-  const [discountCode, setDiscountCode] = useState('');
-  const [tipAmount, setTipAmount] = useState(0);
 
-  const baseTotal = cart.reduce((sum, item) => sum + item.price, 0);
-  const totalPrice = discountCode === 'TESTORDER' ? 0.01 : baseTotal + tipAmount;
+  const total = 20 + tip; // Assume base order is $20 for demo purposes
 
-  const handleConfirmOrder = async () => {
-    const coords = JSON.parse(localStorage.getItem('userCoords'));
-    console.log('📦 [Checkout] Submitting order with coords:', coords);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+
+    if (!agreed) {
+      setError('You must agree to the Terms of Service before checking out.');
+      return;
+    }
+
+    if (!stripe || !elements) return;
+
+    const cardElement = elements.getElement(CardElement);
 
     try {
-      const response = await axios.post(`${BACKEND_URL}/api/orders`, {
-        items: cart,
-        total: totalPrice,
-        tip: tipAmount,
-        discountCode,
-        timestamp: Date.now(),
-        status: 'placed',
-        location: coords || null,
+      const res = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total * 100 }), // Convert to cents
       });
 
-      const orderId = response.data.id || response.data._id;
-      if (orderId) {
-        localStorage.setItem('latestOrderId', orderId);
-        console.log('✅ [Checkout] Order confirmed, ID saved to localStorage:', orderId);
-      }
+      const { clientSecret, orderId } = await res.json();
 
-      clearCart();
-      navigate(`/track-order/${response.data.id}`);
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card: cardElement,
+        },
+      });
+
+      if (result.error) {
+        setError(result.error.message);
+      } else {
+        if (result.paymentIntent.status === 'succeeded') {
+          navigate(`/track-order/${orderId}`);
+        }
+      }
     } catch (err) {
-      console.error('❌ [Checkout] Order submission failed:', err);
+      console.error('Payment error:', err);
+      setError('Payment failed. Please try again.');
     }
   };
 
   return (
-    <div className="checkout-page">
-      <h2>🧾 Review Your Order</h2>
-      {cart.length === 0 ? (
-        <p>Your cart is empty.</p>
-      ) : (
-        <>
-          <ul>
-            {cart.map((item, i) => (
-              <li key={i}>
-                {item.name} — ${item.price.toFixed(2)}
-              </li>
-            ))}
-          </ul>
-          <hr />
-          <p><strong>Add a Tip:</strong></p>
-          <div className="tip-buttons">
-            <button onClick={() => setTipAmount(5)}>$5 — QUICK</button>
-            <button onClick={() => setTipAmount(10)}>$10 — QUICKER</button>
-            <button onClick={() => setTipAmount(15)}>$15 — QUICKEST</button>
-          </div>
-          <p><strong>Total:</strong> ${totalPrice.toFixed(2)}</p>
+    <div className="checkout-container">
+      <h1>Checkout</h1>
+
+      <div className="tip-section">
+        <h3>Add a Tip</h3>
+        <div className="tip-buttons">
+          <button onClick={() => setTip(5)} className={tip === 5 ? 'selected' : ''}>$5 (QUICK)</button>
+          <button onClick={() => setTip(10)} className={tip === 10 ? 'selected' : ''}>$10 (QUICKER)</button>
+          <button onClick={() => setTip(15)} className={tip === 15 ? 'selected' : ''}>$15 (QUICKEST)</button>
+        </div>
+      </div>
+
+      <form onSubmit={handleSubmit} className="payment-form">
+        <label>Card Details</label>
+        <CardElement options={{ style: { base: { fontSize: '16px' } } }} />
+        
+        <div className="tos">
           <input
-            type="text"
-            value={discountCode}
-            onChange={(e) => setDiscountCode(e.target.value)}
-            placeholder="Enter discount code"
+            type="checkbox"
+            checked={agreed}
+            onChange={() => setAgreed(!agreed)}
           />
-          <p style={{ fontSize: '0.9rem', color: 'gray', marginTop: '10px' }}>
-            Orders cannot be modified and delivery times are not guaranteed.
-          </p>
-          <button onClick={handleConfirmOrder} disabled={cart.length === 0}>
-            ✅ Confirm Order
-          </button>
-        </>
-      )}
+          <label>
+            I agree to the Terms of Service. Orders cannot be modified after submission.
+          </label>
+        </div>
+
+        {error && <div className="error">{error}</div>}
+
+        <button type="submit" disabled={!stripe || !agreed}>
+          Pay ${total.toFixed(2)}
+        </button>
+      </form>
     </div>
   );
 };
