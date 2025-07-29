@@ -76,7 +76,7 @@ const CheckoutPage = () => {
     <div className="checkout-container">
       <h2>Checkout</h2>
       {cart.map((item, i) => (
-        <div key={i} className="cart-item">
+        <div key={i} className="checkout-item">
           <span>{item.name}</span>
           <span>${item.price.toFixed(2)}</span>
         </div>
@@ -89,61 +89,86 @@ const CheckoutPage = () => {
       <div className="tip-section">
         <label>Tip:</label>
         <div className="tip-buttons">
-          <button onClick={() => handleTipSelect(5)}>Quick ($5)</button>
-          <button onClick={() => handleTipSelect(10)}>Quicker ($10)</button>
-          <button onClick={() => handleTipSelect(15)}>Quickest ($15)</button>
+          <button
+            className={tip === 5 ? 'selected' : ''}
+            onClick={() => handleTipSelect(5)}
+            type="button"
+          >
+            Quick ($5)
+          </button>
+          <button
+            className={tip === 10 ? 'selected' : ''}
+            onClick={() => handleTipSelect(10)}
+            type="button"
+          >
+            Quicker ($10)
+          </button>
+          <button
+            className={tip === 15 ? 'selected' : ''}
+            onClick={() => handleTipSelect(15)}
+            type="button"
+          >
+            Quickest ($15)
+          </button>
         </div>
-        <input
-          type="number"
-          value={tip}
-          onChange={(e) => setTip(e.target.value)}
-          placeholder="Custom tip"
-        />
       </div>
 
-      <div className="total">
+      <div className="total-line">
         <strong>Total:</strong> ${(subtotal + Number(tip)).toFixed(2)}
       </div>
 
       <form className="checkout-form" onSubmit={handleSubmit}>
-        <input
-          type="text"
-          placeholder="Name"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          required
-        />
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="tel"
-          placeholder="Phone"
-          value={phone}
-          onChange={(e) => setPhone(e.target.value)}
-        />
-        <textarea
-          placeholder="Order notes (optional)"
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-        />
+        <div className="form-grid">
+          <input
+            type="text"
+            placeholder="Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            required
+          />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+          />
+          <input
+            type="tel"
+            placeholder="Phone"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            className="form-grid-full"
+          />
+          <textarea
+            placeholder="Order notes (optional)"
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className="form-grid-full"
+          />
+        </div>
 
-        <div className="card-element">
+        <div className="stripe-card">
           <CardElement />
         </div>
 
-        <label className="disclaimer">
-          <input type="checkbox" checked={agree} onChange={() => setAgree(!agree)} required />
-          I agree to the terms and conditions.
-        </label>
+        <div className="terms">
+          <input
+            type="checkbox"
+            checked={agree}
+            onChange={() => setAgree(!agree)}
+            required
+          />
+          <span>I agree to the terms and conditions.</span>
+        </div>
 
         {error && <div className="error">{error}</div>}
 
-        <button type="submit" disabled={!agree || !stripe || loading}>
+        <button
+          type="submit"
+          className="checkout-button"
+          disabled={!agree || !stripe || loading}
+        >
           {loading ? 'Processing...' : 'Pay Now'}
         </button>
       </form>

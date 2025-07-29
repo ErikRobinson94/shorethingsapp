@@ -1,23 +1,25 @@
 /* CheckoutPage.css */
 
 .checkout-container {
-  max-width: 450px;
-  margin: 40px auto;
-  padding: 30px;
+  max-width: 460px;
+  margin: 50px auto;
+  padding: 32px;
   background: #fff;
   border-radius: 20px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
   font-family: 'Segoe UI', sans-serif;
 }
 
 .checkout-container h2 {
   font-size: 1.75rem;
+  font-weight: 700;
   margin-bottom: 20px;
 }
 
 .checkout-item {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
   font-size: 1rem;
+  line-height: 1.5;
 }
 
 .checkout-item strong {
@@ -26,75 +28,88 @@
 
 .tip-buttons {
   display: flex;
+  justify-content: space-between;
+  margin: 12px 0 20px;
   gap: 10px;
-  margin: 10px 0 20px 0;
 }
 
 .tip-buttons button {
   flex: 1;
   padding: 10px;
-  font-weight: 600;
   border-radius: 8px;
-  border: 2px solid #ddd;
-  background-color: #f7f7f7;
+  border: 2px solid #ccc;
+  background: #f9f9f9;
+  font-weight: 600;
   cursor: pointer;
-  transition: 0.2s;
+  transition: all 0.2s ease-in-out;
 }
 
 .tip-buttons button:hover {
-  background-color: #eaeaea;
-  border-color: #aaa;
+  background: #eee;
+  border-color: #999;
 }
 
 .tip-buttons .selected {
   background-color: #000;
-  color: #fff;
+  color: white;
   border-color: #000;
 }
 
 .total-line {
-  font-size: 1.25rem;
+  font-size: 1.2rem;
+  font-weight: bold;
   margin-bottom: 20px;
 }
 
-.form-group {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 20px;
 }
 
-.form-group input,
-.form-group textarea {
+.form-grid-full {
+  grid-column: span 2;
+}
+
+input,
+textarea {
+  width: 100%;
   padding: 10px;
   font-size: 1rem;
   border-radius: 6px;
   border: 1px solid #ccc;
+  box-sizing: border-box;
+}
+
+textarea {
+  resize: vertical;
+  min-height: 60px;
 }
 
 .stripe-card {
-  margin: 15px 0;
+  margin: 20px 0;
 }
 
 .terms {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-top: 20px;
   font-size: 0.95rem;
+  margin-bottom: 20px;
 }
 
 .checkout-button {
   width: 100%;
-  padding: 12px;
+  padding: 14px;
   font-size: 1rem;
   font-weight: 600;
   background-color: #000;
   color: #fff;
   border: none;
   border-radius: 8px;
-  margin-top: 15px;
-  cursor: pointer;
   transition: 0.2s;
+  cursor: pointer;
 }
 
 .checkout-button:disabled {
