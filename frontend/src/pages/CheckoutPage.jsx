@@ -32,20 +32,22 @@ const CheckoutPage = () => {
     if (!stripe || !elements) return;
 
     try {
+      // Create Payment Intent
       const res = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: total })
+        body: JSON.stringify({ amount: total }),
       });
 
       const { clientSecret, orderId } = await res.json();
       const card = elements.getElement(CardElement);
 
+      // Confirm card payment
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card,
-          billing_details: { name, email, phone }
-        }
+          billing_details: { name, email, phone },
+        },
       });
 
       if (result.error) {
@@ -53,6 +55,25 @@ const CheckoutPage = () => {
         setLoading(false);
         return;
       }
+
+      // 🌟 Send order to backend so OrderTracker can fetch it later
+      const location = JSON.parse(localStorage.getItem('location')) || {};
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderId,
+          items: cart,
+          total: subtotal + Number(tip),
+          tip,
+          name,
+          email,
+          phone,
+          notes,
+          location,
+          status: 'placed',
+        }),
+      });
 
       clearCart();
       navigate(`/track-order/${orderId}`, {
@@ -63,8 +84,8 @@ const CheckoutPage = () => {
           phone,
           notes,
           tip,
-          cart
-        }
+          cart,
+        },
       });
     } catch (err) {
       setError('Payment failed. Try again.');
@@ -89,27 +110,16 @@ const CheckoutPage = () => {
       <div className="tip-section">
         <label>Tip:</label>
         <div className="tip-buttons">
-          <button
-            className={tip === 5 ? 'selected' : ''}
-            onClick={() => handleTipSelect(5)}
-            type="button"
-          >
-            Quick ($5)
-          </button>
-          <button
-            className={tip === 10 ? 'selected' : ''}
-            onClick={() => handleTipSelect(10)}
-            type="button"
-          >
-            Quicker ($10)
-          </button>
-          <button
-            className={tip === 15 ? 'selected' : ''}
-            onClick={() => handleTipSelect(15)}
-            type="button"
-          >
-            Quickest ($15)
-          </button>
+          {[5, 10, 15].map((amt) => (
+            <button
+              key={amt}
+              className={tip === amt ? 'selected' : ''}
+              onClick={() => handleTipSelect(amt)}
+              type="button"
+            >
+              {amt === 5 ? 'Quick' : amt === 10 ? 'Quicker' : 'Quickest'} (${amt})
+            </button>
+          ))}
         </div>
       </div>
 
