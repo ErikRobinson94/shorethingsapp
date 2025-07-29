@@ -56,8 +56,11 @@ const CheckoutPage = () => {
         return;
       }
 
-      // 3. Send order to backend
-      const location = JSON.parse(localStorage.getItem('location')) || {};
+      // ✅ 3. Grab location from localStorage
+      const location =
+        JSON.parse(localStorage.getItem('customerCoords')) || {};
+
+      // 4. Send order to backend
       await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -70,7 +73,7 @@ const CheckoutPage = () => {
           email,
           phone,
           notes,
-          location,
+          location, // ✅ correct location
           status: 'placed',
         }),
       });
@@ -88,6 +91,7 @@ const CheckoutPage = () => {
         },
       });
     } catch (err) {
+      console.error('❌ Payment error:', err);
       setError('Payment failed. Try again.');
       setLoading(false);
     }
@@ -187,5 +191,3 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
-
-//
