@@ -132,11 +132,13 @@ app.post('/api/orders', (req, res) => {
 
     const order = req.body || {};
     const location = normalizeLocation(order.location);
-
     const total = order.discountCode === 'TESTORDER' ? 0.01 : (order.total || 0);
 
+    // ✅ Use client-provided orderId if available
+    const orderId = order.orderId ? Number(order.orderId) : Date.now();
+
     const newOrder = {
-      id: Date.now(),
+      id: orderId,
       timestamp: new Date().toISOString(),
       status: 'placed',
       items: order.items || [],
@@ -296,4 +298,3 @@ app.get('*', (req, res) => {
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });
-
