@@ -32,7 +32,7 @@ const CheckoutPage = () => {
     if (!stripe || !elements) return;
 
     try {
-      // Create Payment Intent
+      // 1. Create payment intent
       const res = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,7 +42,7 @@ const CheckoutPage = () => {
       const { clientSecret, orderId } = await res.json();
       const card = elements.getElement(CardElement);
 
-      // Confirm card payment
+      // 2. Confirm payment
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card,
@@ -56,7 +56,7 @@ const CheckoutPage = () => {
         return;
       }
 
-      // 🌟 Send order to backend so OrderTracker can fetch it later
+      // 3. Send order to backend
       const location = JSON.parse(localStorage.getItem('location')) || {};
       await fetch('/api/orders', {
         method: 'POST',
@@ -187,3 +187,5 @@ const CheckoutPage = () => {
 };
 
 export default CheckoutPage;
+
+//
