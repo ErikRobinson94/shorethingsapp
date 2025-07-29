@@ -1,130 +1,152 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import React, { useState } from 'react';
+import { useCart } from '../context/CartContext';
+import { useNavigate } from 'react-router-dom';
 import { CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import '../styles/CheckoutPage.css';
 
 const CheckoutPage = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
+  const { cart, clearCart } = useCart();
   const stripe = useStripe();
   const elements = useElements();
+  const navigate = useNavigate();
 
-  const { selectedItems = [], orderId, customerLocation } = location.state || {};
-
-  const [subtotal, setSubtotal] = useState(0);
   const [tip, setTip] = useState(0);
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [notes, setNotes] = useState('');
   const [agree, setAgree] = useState(false);
-  const [processing, setProcessing] = useState(false);
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    const total = selectedItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    setSubtotal(total);
-  }, [selectedItems]);
+  const subtotal = cart.reduce((acc, item) => acc + item.price, 0);
+  const total = Math.round((subtotal + Number(tip)) * 100);
 
-  const handleTipChange = (e) => {
-    const value = parseFloat(e.target.value);
-    setTip(isNaN(value) ? 0 : value);
-  };
-
-  const setQuickTip = (amount) => {
-    setTip(amount);
-  };
+  const handleTipSelect = (amount) => setTip(amount);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!stripe || !elements || !agree) return;
+    setError('');
+    setLoading(true);
 
-    setProcessing(true);
+    if (!stripe || !elements) return;
 
-    const cardElement = elements.getElement(CardElement);
-    const { error, paymentMethod } = await stripe.createPaymentMethod({
-      type: 'card',
-      card: cardElement,
-    });
+    try {
+      const res = await fetch('/api/create-payment-intent', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: total })
+      });
 
-    if (error) {
-      console.error(error);
-      setProcessing(false);
-      return;
-    }
+      const { clientSecret, orderId } = await res.json();
+      const card = elements.getElement(CardElement);
 
-    const total = subtotal + tip;
+      const result = await stripe.confirmCardPayment(clientSecret, {
+        payment_method: {
+          card,
+          billing_details: { name, email, phone }
+        }
+      });
 
-    navigate('/order-tracker', {
-      state: {
-        selectedItems,
-        subtotal,
-        tip,
-        total,
-        orderId,
-        customerLocation,
-        paymentMethodId: paymentMethod.id
+      if (result.error) {
+        setError(result.error.message);
+        setLoading(false);
+        return;
       }
-    });
+
+      clearCart();
+      navigate(`/track-order/${orderId}`, {
+        state: {
+          orderId,
+          name,
+          email,
+          phone,
+          notes,
+          tip,
+          cart
+        }
+      });
+    } catch (err) {
+      setError('Payment failed. Try again.');
+      setLoading(false);
+    }
   };
 
   return (
     <div className="checkout-container">
       <h2>Checkout</h2>
+      {cart.map((item, i) => (
+        <div key={i} className="cart-item">
+          <span>{item.name}</span>
+          <span>${item.price.toFixed(2)}</span>
+        </div>
+      ))}
 
-      {selectedItems.length > 0 ? (
-        selectedItems.map((item, index) => (
-          <div key={index} className="item-row">
-            <span>{item.name} x {item.quantity}</span>
-            <span>${(item.price * item.quantity).toFixed(2)}</span>
-          </div>
-        ))
-      ) : (
-        <p>No items found in your cart.</p>
-      )}
-
-      <hr />
-      <div className="summary-row">
-        <span>Subtotal:</span>
-        <strong>${subtotal.toFixed(2)}</strong>
+      <div className="subtotal">
+        <strong>Subtotal:</strong> ${subtotal.toFixed(2)}
       </div>
 
       <div className="tip-section">
-        <label>Tip: </label>
+        <label>Tip:</label>
         <div className="tip-buttons">
-          <button onClick={() => setQuickTip(1)}>$1</button>
-          <button onClick={() => setQuickTip(2)}>$2</button>
-          <button onClick={() => setQuickTip(3)}>$3</button>
+          <button onClick={() => handleTipSelect(5)}>Quick ($5)</button>
+          <button onClick={() => handleTipSelect(10)}>Quicker ($10)</button>
+          <button onClick={() => handleTipSelect(15)}>Quickest ($15)</button>
         </div>
         <input
           type="number"
           value={tip}
-          onChange={handleTipChange}
-          step="0.01"
-          min="0"
+          onChange={(e) => setTip(e.target.value)}
+          placeholder="Custom tip"
         />
       </div>
 
-      <div className="summary-row total">
-        <span>Total:</span>
-        <strong>${(subtotal + tip).toFixed(2)}</strong>
+      <div className="total">
+        <strong>Total:</strong> ${(subtotal + Number(tip)).toFixed(2)}
       </div>
 
-      <div className="card-section">
-        <CardElement />
-      </div>
-
-      <div className="agreement">
+      <form className="checkout-form" onSubmit={handleSubmit}>
         <input
-          type="checkbox"
-          checked={agree}
-          onChange={() => setAgree(!agree)}
+          type="text"
+          placeholder="Name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          required
         />
-        <span>I agree to the terms and conditions.</span>
-      </div>
+        <input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="tel"
+          placeholder="Phone"
+          value={phone}
+          onChange={(e) => setPhone(e.target.value)}
+        />
+        <textarea
+          placeholder="Order notes (optional)"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+        />
 
-      <button
-        onClick={handleSubmit}
-        disabled={!stripe || !agree || processing}
-        className="submit-btn"
-      >
-        {processing ? 'Processing...' : 'Submit Order'}
-      </button>
+        <div className="card-element">
+          <CardElement />
+        </div>
+
+        <label className="disclaimer">
+          <input type="checkbox" checked={agree} onChange={() => setAgree(!agree)} required />
+          I agree to the terms and conditions.
+        </label>
+
+        {error && <div className="error">{error}</div>}
+
+        <button type="submit" disabled={!agree || !stripe || loading}>
+          {loading ? 'Processing...' : 'Pay Now'}
+        </button>
+      </form>
     </div>
   );
 };
