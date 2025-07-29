@@ -1,92 +1,103 @@
+/* CheckoutPage.css */
+
 .checkout-container {
-  max-width: 500px;
-  margin: 2rem auto;
-  background: white;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  max-width: 450px;
+  margin: 40px auto;
+  padding: 30px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
   font-family: 'Segoe UI', sans-serif;
 }
 
 .checkout-container h2 {
-  font-size: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: 1.75rem;
+  margin-bottom: 20px;
 }
 
 .checkout-item {
-  display: flex;
-  justify-content: space-between;
-  margin-bottom: 0.5rem;
+  margin-bottom: 10px;
+  font-size: 1rem;
 }
 
-.checkout-summary {
-  margin-top: 1.5rem;
-}
-
-.checkout-summary div {
-  margin-bottom: 0.5rem;
+.checkout-item strong {
+  font-weight: 600;
 }
 
 .tip-buttons {
   display: flex;
-  gap: 8px;
-  margin: 0.5rem 0;
+  gap: 10px;
+  margin: 10px 0 20px 0;
 }
 
 .tip-buttons button {
-  padding: 4px 12px;
-  background-color: #eee;
-  border: 1px solid #ccc;
-  border-radius: 6px;
+  flex: 1;
+  padding: 10px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 2px solid #ddd;
+  background-color: #f7f7f7;
   cursor: pointer;
-  font-weight: 500;
+  transition: 0.2s;
 }
 
 .tip-buttons button:hover {
-  background-color: #ddd;
+  background-color: #eaeaea;
+  border-color: #aaa;
 }
 
-.checkout-summary input[type="number"] {
-  width: 100%;
-  padding: 6px;
-  margin-top: 0.3rem;
-  border-radius: 4px;
+.tip-buttons .selected {
+  background-color: #000;
+  color: #fff;
+  border-color: #000;
+}
+
+.total-line {
+  font-size: 1.25rem;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.form-group input,
+.form-group textarea {
+  padding: 10px;
+  font-size: 1rem;
+  border-radius: 6px;
   border: 1px solid #ccc;
 }
 
-.checkout-total {
-  font-size: 1.2rem;
-  font-weight: bold;
-  margin-top: 1rem;
+.stripe-card {
+  margin: 15px 0;
 }
 
-.checkout-card {
-  margin: 1rem 0;
-  padding: 0.75rem;
-  background: #f9f9f9;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-}
-
-.checkout-terms {
+.terms {
   display: flex;
   align-items: center;
-  margin-bottom: 1rem;
-  gap: 6px;
+  gap: 10px;
+  margin-top: 20px;
+  font-size: 0.95rem;
 }
 
-.submit-order {
+.checkout-button {
   width: 100%;
-  background-color: #444;
-  color: white;
   padding: 12px;
   font-size: 1rem;
+  font-weight: 600;
+  background-color: #000;
+  color: #fff;
   border: none;
-  border-radius: 6px;
+  border-radius: 8px;
+  margin-top: 15px;
   cursor: pointer;
+  transition: 0.2s;
 }
 
-.submit-order:disabled {
-  background-color: #aaa;
+.checkout-button:disabled {
+  background-color: #ccc;
   cursor: not-allowed;
 }
