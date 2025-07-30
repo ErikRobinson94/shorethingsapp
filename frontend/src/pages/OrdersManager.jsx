@@ -58,7 +58,6 @@ const OrdersManager = () => {
       return;
     }
 
-    // Stop any previous GPS watch
     if (watchIdRef.current !== null) {
       navigator.geolocation.clearWatch(watchIdRef.current);
       watchIdRef.current = null;
@@ -67,7 +66,6 @@ const OrdersManager = () => {
     activeOrderRef.current = orderId;
     socket.emit('joinOrder', orderId);
 
-    // Start real GPS tracking
     watchIdRef.current = navigator.geolocation.watchPosition(
       (position) => {
         const { latitude, longitude } = position.coords;
@@ -104,6 +102,9 @@ const OrdersManager = () => {
             </ul>
             <p><strong>Total:</strong> ${order.total.toFixed(2)}</p>
             <p><strong>Time:</strong> {new Date(order.timestamp).toLocaleString()}</p>
+            {order.tower && (
+              <p><strong>Tower:</strong> {order.tower}</p>
+            )}
             {order.location && (
               <p>
                 <strong>Location:</strong> Lat {order.location.latitude?.toFixed(5)}, Lon {order.location.longitude?.toFixed(5)}
@@ -125,3 +126,4 @@ const OrdersManager = () => {
 };
 
 export default OrdersManager;
+//added

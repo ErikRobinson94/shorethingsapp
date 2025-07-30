@@ -1,3 +1,4 @@
+// src/pages/CheckoutPage.jsx
 import React, { useState } from 'react';
 import { useCart } from '../context/CartContext';
 import { useNavigate } from 'react-router-dom';
@@ -32,7 +33,6 @@ const CheckoutPage = () => {
     if (!stripe || !elements) return;
 
     try {
-      // 1. Create payment intent
       const res = await fetch('/api/create-payment-intent', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -42,7 +42,6 @@ const CheckoutPage = () => {
       const { clientSecret, orderId } = await res.json();
       const card = elements.getElement(CardElement);
 
-      // 2. Confirm payment
       const result = await stripe.confirmCardPayment(clientSecret, {
         payment_method: {
           card,
@@ -56,11 +55,10 @@ const CheckoutPage = () => {
         return;
       }
 
-      // ✅ 3. Grab location from localStorage
       const location =
         JSON.parse(localStorage.getItem('customerCoords')) || {};
+      const tower = localStorage.getItem('selectedTower') || '';
 
-      // 4. Send order to backend
       await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -73,7 +71,8 @@ const CheckoutPage = () => {
           email,
           phone,
           notes,
-          location, // ✅ correct location
+          location,
+          tower,
           status: 'placed',
         }),
       });
