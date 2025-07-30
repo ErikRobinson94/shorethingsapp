@@ -23,11 +23,6 @@ function App() {
     <CartProvider>
       <Elements stripe={stripePromise}>
         <Router>
-          <nav style={{ padding: '10px', background: '#f0f0f0' }}>
-            <Link to="/" style={{ marginRight: '10px' }}>Home</Link>
-            <Link to="/admin">Admin</Link>
-          </nav>
-
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/location" element={<LocationPage />} />
