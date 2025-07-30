@@ -12,6 +12,9 @@ import ItemsPage from './pages/ItemsPage';
 import AdminDashboard from './pages/AdminDashboard';
 import CheckoutPage from './pages/CheckoutPage';
 import OrderTracker from './pages/OrderTracker';
+import ConfirmTowerPage from './pages/ConfirmTowerPage';
+
+
 
 const stripePromise = loadStripe(process.env.REACT_APP_STRIPE_PUBLISHABLE_KEY);
 
@@ -33,6 +36,8 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/checkout" element={<CheckoutPage />} />
             <Route path="/track-order/:id" element={<OrderTracker />} />
+            <Route path="/confirm-tower" element={<ConfirmTowerPage />} />
+
           </Routes>
         </Router>
       </Elements>
