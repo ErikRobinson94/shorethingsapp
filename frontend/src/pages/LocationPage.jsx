@@ -94,9 +94,9 @@ function LocationPage() {
     );
   };
 
-  const handleAddItemsClick = () => {
-    console.log('🛒 [Nav] Navigating to item selection...');
-    navigate('/items');
+  const handleConfirmTowerClick = () => {
+    console.log('➡️ [Nav] Navigating to ConfirmTowerPage...');
+    navigate('/confirm-tower');
   };
 
   useEffect(() => {
@@ -119,14 +119,16 @@ function LocationPage() {
       <div id="map-container" ref={mapContainerRef}></div>
 
       {coords && (
-        <p className="coords">
-          📍 <strong>Lat:</strong> {coords.lat.toFixed(5)} | <strong>Lon:</strong> {coords.lon.toFixed(5)}
-        </p>
+        <>
+          <p className="coords">
+            📍 <strong>Lat:</strong> {coords.lat.toFixed(5)} | <strong>Lon:</strong> {coords.lon.toFixed(5)}
+          </p>
+          <p className="instruction">This will be your delivery location.</p>
+          <button className="add-items-btn" onClick={handleConfirmTowerClick}>
+            <span className="icon">➡️</span> Select the Closest Lifeguard Tower
+          </button>
+        </>
       )}
-
-      <button className="add-items-btn" onClick={handleAddItemsClick}>
-        <span className="icon">➕</span> Add Items to Your Order →
-      </button>
     </div>
   );
 }
