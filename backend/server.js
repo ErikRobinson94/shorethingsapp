@@ -7,7 +7,7 @@ const http = require('http');
 const { Server } = require('socket.io');
 const Stripe = require('stripe');
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY); // Add your Render env variable: STRIPE_SECRET_KEY
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
 const server = http.createServer(app);
@@ -17,9 +17,6 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 5000;
 
-/* ------------------------------------------------------------------ */
-/*  CORS Configuration                                                 */
-/* ------------------------------------------------------------------ */
 const ALLOWED_ORIGINS = [
   'https://shorethingsapp.onrender.com',
   'http://localhost:3000'
@@ -133,8 +130,6 @@ app.post('/api/orders', (req, res) => {
     const order = req.body || {};
     const location = normalizeLocation(order.location);
     const total = order.discountCode === 'TESTORDER' ? 0.01 : (order.total || 0);
-
-    // ✅ Use client-provided orderId if available
     const orderId = order.orderId ? Number(order.orderId) : Date.now();
 
     const newOrder = {
@@ -145,7 +140,8 @@ app.post('/api/orders', (req, res) => {
       total,
       tip: order.tip || 0,
       discountCode: order.discountCode || '',
-      location
+      location,
+      lifeguardTower: order.lifeguardTower || '' // ✅ NEW FIELD
     };
 
     const ordersPath = getFile('orders.json');
@@ -245,7 +241,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
       automatic_payment_methods: { enabled: true },
     });
 
-    const orderId = Date.now(); // or use a UUID if preferred
+    const orderId = Date.now();
     res.json({ clientSecret: paymentIntent.client_secret, orderId });
   } catch (err) {
     console.error('Stripe error:', err);
@@ -298,4 +294,6 @@ app.get('*', (req, res) => {
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });
- 
+
+
+
