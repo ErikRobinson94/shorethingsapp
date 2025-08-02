@@ -92,6 +92,16 @@ function normalizeLocation(location) {
   return { latitude: 33.881941, longitude: -118.409997 };
 }
 
+function addFullImageURLs(items, req) {
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+  return items.map(item => {
+    if (item.image && !item.image.startsWith('http')) {
+      return { ...item, image: `${baseUrl}${item.image}` };
+    }
+    return item;
+  });
+}
+
 /* ------------------------ API Routes ---------------------------- */
 app.get('/api/vendors', (req, res) => {
   try {
@@ -106,7 +116,8 @@ app.get('/api/vendors', (req, res) => {
 app.get('/api/items', (req, res) => {
   try {
     const items = safeReadJSON(getFile('items.json'), []);
-    res.json(items);
+    const updated = addFullImageURLs(items, req);
+    res.json(updated);
   } catch (err) {
     console.error('Error reading items:', err);
     res.status(500).json({ error: 'Failed to read items.' });
@@ -116,7 +127,8 @@ app.get('/api/items', (req, res) => {
 app.get('/api/products', (req, res) => {
   try {
     const products = safeReadJSON(getFile('items.json'), []);
-    res.json(products);
+    const updated = addFullImageURLs(products, req);
+    res.json(updated);
   } catch (err) {
     console.error('Error reading products:', err);
     res.status(500).json({ error: 'Failed to read products.' });
@@ -141,7 +153,7 @@ app.post('/api/orders', (req, res) => {
       tip: order.tip || 0,
       discountCode: order.discountCode || '',
       location,
-      lifeguardTower: order.lifeguardTower || '' // ✅ NEW FIELD
+      lifeguardTower: order.lifeguardTower || ''
     };
 
     const ordersPath = getFile('orders.json');
@@ -294,6 +306,3 @@ app.get('*', (req, res) => {
 server.listen(PORT, () => {
   console.log(`✅ Server + Socket.IO running on port ${PORT}`);
 });
-
-
-
