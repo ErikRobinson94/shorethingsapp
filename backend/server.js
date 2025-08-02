@@ -106,7 +106,14 @@ function addFullImageURLs(items, req) {
 app.get('/api/vendors', (req, res) => {
   try {
     const vendors = safeReadJSON(getFile('vendors.json'), []);
-    res.json(vendors);
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const updated = vendors.map(vendor => {
+      if (vendor.image && !vendor.image.startsWith('http')) {
+        return { ...vendor, image: `${baseUrl}${vendor.image}` };
+      }
+      return vendor;
+    });
+    res.json(updated);
   } catch (err) {
     console.error('Error reading vendors:', err);
     res.status(500).json({ error: 'Failed to read vendors.' });
