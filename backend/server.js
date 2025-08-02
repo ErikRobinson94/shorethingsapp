@@ -122,7 +122,19 @@ app.get('/api/vendors', (req, res) => {
 
 app.get('/api/items', (req, res) => {
   try {
-    const items = safeReadJSON(getFile('items.json'), []);
+    const { vendor, vendorId } = req.query;
+    let items = safeReadJSON(getFile('items.json'), []);
+
+    if (vendor) {
+      items = items.filter(item => item.vendor === vendor);
+    } else if (vendorId) {
+      const vendors = safeReadJSON(getFile('vendors.json'), []);
+      const foundVendor = vendors.find(v => v.id.toString() === vendorId.toString());
+      if (foundVendor) {
+        items = items.filter(item => item.vendor === foundVendor.name);
+      }
+    }
+
     const updated = addFullImageURLs(items, req);
     res.json(updated);
   } catch (err) {
