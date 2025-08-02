@@ -6,7 +6,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const Stripe = require('stripe');
-const multer = require('multer'); // Added for image upload
+const multer = require('multer');
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -40,10 +40,8 @@ app.use(
 
 app.use(express.json());
 
-// Make sure uploads directory exists
 const uploadsDir = path.join(__dirname, 'uploads');
 fs.mkdirSync(uploadsDir, { recursive: true });
-
 app.use('/uploads', express.static(uploadsDir));
 
 app.get('/api/ping', (req, res) => {
@@ -179,7 +177,11 @@ app.post('/api/orders', (req, res) => {
       discountCode: order.discountCode || '',
       location,
       lifeguardTower: order.lifeguardTower || '',
-      photo: order.photo || ''
+      photo: order.photo || '',
+      name: order.name || '',
+      phone: order.phone || '',
+      email: order.email || '',
+      stripeId: order.stripeId || ''
     };
 
     const ordersPath = getFile('orders.json');
