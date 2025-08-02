@@ -6,6 +6,7 @@ const path = require('path');
 const http = require('http');
 const { Server } = require('socket.io');
 const Stripe = require('stripe');
+const multer = require('multer'); // Added for image upload
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -38,7 +39,12 @@ app.use(
 );
 
 app.use(express.json());
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
+// Make sure uploads directory exists
+const uploadsDir = path.join(__dirname, 'uploads');
+fs.mkdirSync(uploadsDir, { recursive: true });
+
+app.use('/uploads', express.static(uploadsDir));
 
 app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
@@ -172,7 +178,8 @@ app.post('/api/orders', (req, res) => {
       tip: order.tip || 0,
       discountCode: order.discountCode || '',
       location,
-      lifeguardTower: order.lifeguardTower || ''
+      lifeguardTower: order.lifeguardTower || '',
+      photo: order.photo || ''
     };
 
     const ordersPath = getFile('orders.json');
@@ -277,6 +284,31 @@ app.post('/api/create-payment-intent', async (req, res) => {
   } catch (err) {
     console.error('Stripe error:', err);
     res.status(500).json({ error: 'Stripe payment failed' });
+  }
+});
+
+/* ------------------------ Upload Image Endpoint ---------------------------- */
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    cb(null, `photo_${Date.now()}${ext}`);
+  }
+});
+const upload = multer({ storage });
+
+app.post('/api/upload-photo', upload.single('photo'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded.' });
+    }
+    const fileUrl = `${req.protocol}://${req.get('host')}/uploads/${req.file.filename}`;
+    res.json({ success: true, url: fileUrl });
+  } catch (err) {
+    console.error('Upload error:', err);
+    res.status(500).json({ error: 'Upload failed' });
   }
 });
 
