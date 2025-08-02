@@ -167,6 +167,8 @@ app.post('/api/orders', (req, res) => {
     const total = order.discountCode === 'TESTORDER' ? 0.01 : (order.total || 0);
     const orderId = order.orderId ? Number(order.orderId) : Date.now();
 
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+
     const newOrder = {
       id: orderId,
       timestamp: new Date().toISOString(),
@@ -181,7 +183,8 @@ app.post('/api/orders', (req, res) => {
       name: order.name || '',
       phone: order.phone || '',
       email: order.email || '',
-      stripeId: order.stripeId || ''
+      stripeId: order.stripeId || '',
+      trackerUrl: `${baseUrl}/order-tracker/${orderId}`
     };
 
     const ordersPath = getFile('orders.json');
