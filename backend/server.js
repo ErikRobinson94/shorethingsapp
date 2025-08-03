@@ -329,18 +329,28 @@ io.on('connection', (socket) => {
 
   socket.on('driverLocation', ({ orderId, latitude, longitude }) => {
     const room = `order-${orderId}`;
-    console.log('📍 Driver location update:', { orderId, latitude, longitude });
-    if (orderId) {
-      io.to(room).emit('driverLocation', { latitude, longitude });
+    const ordersPath = getFile('orders.json');
+    const orders = safeReadJSON(ordersPath, []);
+    const targetOrder = orders.find((o) => (o.id + '') === (orderId + ''));
+
+    if (!targetOrder) {
+      console.warn(`⚠️ Order ${orderId} not found. Skipping driverLocation.`);
+      return;
     }
+
+    if (targetOrder.status === 'delivered') {
+      console.log(`✅ Order ${orderId} already delivered. Ignoring driver location update.`);
+      return;
+    }
+
+    console.log('📍 Driver location update:', { orderId, latitude, longitude });
+    io.to(room).emit('driverLocation', { latitude, longitude });
   });
 
   socket.on('customerLocation', ({ orderId, latitude, longitude }) => {
     const room = `order-${orderId}`;
     console.log('📌 Customer location update:', { orderId, latitude, longitude });
-    if (orderId) {
-      io.to(room).emit('customerLocation', { latitude, longitude });
-    }
+    io.to(room).emit('customerLocation', { latitude, longitude });
   });
 
   socket.on('disconnect', () => {
