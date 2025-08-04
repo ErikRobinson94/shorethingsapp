@@ -8,9 +8,12 @@ const { Server } = require('socket.io');
 const Stripe = require('stripe');
 const multer = require('multer');
 
-// MongoDB connection + routes
+// ---------------- MongoDB connection + Mongo routes ----------------
 require('./mongoose'); // 🧠 MongoDB connection
-const vendorRoutes = require('./vendors/vendor.routes');
+const vendorRoutes = require('./routes/vendors.routes'); 
+const itemRoutes = require('./routes/items.routes');
+const orderRoutes = require('./routes/orders.routes');
+// --------------------------------------------------------------------
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
@@ -52,8 +55,11 @@ app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
 
-/* -------------------- Mongo API Routes ---------------------- */
+// -------------------- Mongo API Routes ----------------------
 app.use('/api/vendors', vendorRoutes);
+app.use('/api/items', itemRoutes);
+app.use('/api/orders', orderRoutes);
+// -------------------------------------------------------------
 
 /* -------------------- Legacy File System -------------------- */
 const DATA_DIR = path.join(__dirname, 'data');
