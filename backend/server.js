@@ -8,6 +8,10 @@ const { Server } = require('socket.io');
 const Stripe = require('stripe');
 const multer = require('multer');
 
+// MongoDB connection + routes
+require('./mongoose'); // 🧠 MongoDB connection
+const vendorRoutes = require('./vendors/vendor.routes');
+
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
 const app = express();
@@ -48,6 +52,10 @@ app.get('/api/ping', (req, res) => {
   res.json({ message: 'pong' });
 });
 
+/* -------------------- Mongo API Routes ---------------------- */
+app.use('/api/vendors', vendorRoutes);
+
+/* -------------------- Legacy File System -------------------- */
 const DATA_DIR = path.join(__dirname, 'data');
 fs.mkdirSync(DATA_DIR, { recursive: true });
 
@@ -106,24 +114,7 @@ function addFullImageURLs(items, req) {
   });
 }
 
-/* ------------------------ API Routes ---------------------------- */
-app.get('/api/vendors', (req, res) => {
-  try {
-    const vendors = safeReadJSON(getFile('vendors.json'), []);
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
-    const updated = vendors.map(vendor => {
-      if (vendor.image && !vendor.image.startsWith('http')) {
-        return { ...vendor, image: `${baseUrl}${vendor.image}` };
-      }
-      return vendor;
-    });
-    res.json(updated);
-  } catch (err) {
-    console.error('Error reading vendors:', err);
-    res.status(500).json({ error: 'Failed to read vendors.' });
-  }
-});
-
+/* ---------------------- FS-Based Routes --------------------- */
 app.get('/api/items', (req, res) => {
   try {
     const { vendor, vendorId } = req.query;
@@ -216,18 +207,6 @@ app.get('/api/orders', (req, res) => {
   }
 });
 
-app.get('/api/orders/latest', (req, res) => {
-  try {
-    const ordersPath = getFile('orders.json');
-    const orders = safeReadJSON(ordersPath, []);
-    const latest = orders.length > 0 ? orders[orders.length - 1] : null;
-    res.json(latest ? { ...latest, location: normalizeLocation(latest.location) } : null);
-  } catch (err) {
-    console.error('Error fetching latest order:', err);
-    res.status(500).json({ error: 'Failed to fetch latest order' });
-  }
-});
-
 app.get('/api/orders/:id', (req, res) => {
   try {
     const orderId = req.params.id;
@@ -273,7 +252,7 @@ app.post('/api/orders/status', (req, res) => {
   }
 });
 
-/* ------------------------ STRIPE PAYMENT ENDPOINT ---------------------------- */
+/* ------------------------ STRIPE PAYMENT --------------------- */
 app.post('/api/create-payment-intent', async (req, res) => {
   const { amount } = req.body;
 
@@ -292,7 +271,7 @@ app.post('/api/create-payment-intent', async (req, res) => {
   }
 });
 
-/* ------------------------ Upload Image Endpoint ---------------------------- */
+/* ------------------------ Upload Image ------------------------ */
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
     cb(null, uploadsDir);
@@ -317,7 +296,7 @@ app.post('/api/upload-photo', upload.single('photo'), (req, res) => {
   }
 });
 
-/* ---------------------- WebSocket ------------------------- */
+/* ---------------------- WebSockets ---------------------- */
 io.on('connection', (socket) => {
   console.log('🚛 Socket connected:', socket.id);
 
