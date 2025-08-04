@@ -1,39 +1,56 @@
 const express = require('express');
+const Vendor = require('../models/vendors'); // Mongo model
+
 const router = express.Router();
-const Vendor = require('../models/vendors');
 
 // GET all vendors
 router.get('/', async (req, res) => {
   try {
     const vendors = await Vendor.find();
-    res.json(vendors);
-  } catch (err) {
-    console.error('Failed to get vendors:', err);
-    res.status(500).json({ error: 'Failed to fetch vendors' });
-  }
-});
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
 
-// GET vendor by ID
-router.get('/:id', async (req, res) => {
-  try {
-    const vendor = await Vendor.findById(req.params.id);
-    if (!vendor) return res.status(404).json({ error: 'Vendor not found' });
-    res.json(vendor);
+    const updated = vendors.map(vendor => {
+      const img = vendor.image || '';
+      if (img && !img.startsWith('http')) {
+        return { ...vendor._doc, image: `${baseUrl}${img}` };
+      }
+      return vendor._doc;
+    });
+
+    res.json(updated);
   } catch (err) {
-    console.error('Failed to get vendor:', err);
-    res.status(500).json({ error: 'Failed to fetch vendor' });
+    console.error('❌ Error fetching vendors from Mongo:', err);
+    res.status(500).json({ error: 'Failed to fetch vendors' });
   }
 });
 
 // POST a new vendor
 router.post('/', async (req, res) => {
   try {
-    const newVendor = new Vendor(req.body);
-    const saved = await newVendor.save();
-    res.status(201).json(saved);
+    const { name, image } = req.body;
+    if (!name || !image) {
+      return res.status(400).json({ error: 'Missing name or image' });
+    }
+
+    const newVendor = new Vendor({ name, image });
+    await newVendor.save();
+
+    res.status(201).json(newVendor);
   } catch (err) {
-    console.error('Failed to create vendor:', err);
-    res.status(500).json({ error: 'Failed to create vendor' });
+    console.error('❌ Error adding vendor:', err);
+    res.status(500).json({ error: 'Failed to add vendor' });
+  }
+});
+
+// DELETE vendor by ID
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    await Vendor.findByIdAndDelete(id);
+    res.status(200).json({ message: 'Vendor deleted' });
+  } catch (err) {
+    console.error('❌ Error deleting vendor:', err);
+    res.status(500).json({ error: 'Failed to delete vendor' });
   }
 });
 
